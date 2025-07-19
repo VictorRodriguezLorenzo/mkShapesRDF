@@ -1,5 +1,4 @@
 from mkShapesRDF.processor.framework.processor import Processor
-from mkShapesRDF.processor.framework.Sites_cfg import Sites
 import argparse
 import os
 from sys import argv
@@ -14,20 +13,14 @@ condorDir = (
 
 #: eosDir is the path to use for eos submission, user might want to change it -> edit ``mkPostProc.py``
 # eosDir = "/eos/cms/store/group/phys_smp/Latinos/vbfz/mkShapesRDF_nanoAOD"
-# eosDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/"
-
-# Select site
-uname = os.uname()[1]
-site = ''
-if 'portal'   in uname: site = 'kit'
-elif "bms"    in uname: site = 'kit'
-elif "lxplus" in uname: site = 'cern'
-
-eosDir = Sites[site]["eosDir"]
+eosDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/"
 
 #: defaultRedirector is the redirector used to access files if the option ``--useRedirector 1`` is used, user might want to change it -> edit ``mkPostProc.py``
 defaultRedirector = "root://cms-xrd-global.cern.ch/"
 # defaultRedirector = "root://xrootd-cms.infn.it/"
+
+
+
 
 
 def defaultParser():
@@ -60,6 +53,15 @@ def defaultParser():
 
     return parser
 
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 def operationMode0Parser(parser=None):
     if parser is None:
@@ -85,9 +87,18 @@ def operationMode0Parser(parser=None):
     )
 
     parser0.add_argument(
+        "-isRP",
+        "--isRandomizedParameters",
+        type=str2bool,
+        help="Set to True if the input samples were generated with randomized parameters; otherwise, set to False.",
+        required=False,
+        default=False,
+    )
+
+    parser0.add_argument(
         "-iL",
         "--isLatino",
-        type=bool,
+        type=str2bool,
         help="If the files in input follow the latino naming convention",
         required=False,
         default=True,
@@ -193,6 +204,7 @@ def main():
         limitFiles = args.limitFiles
         dryRun = args.dryRun
         useRedirector = args.useRedirector
+        isRandomizedParameters = args.isRandomizedParameters
 
         redirector = ""
         if useRedirector == 1:
@@ -211,6 +223,7 @@ def main():
             maxFilesPerJob=maxFilesPerJob,
             limitFiles=limitFiles,
             dryRun=dryRun,
+            isRandomizedParameters=isRandomizedParameters
         )
 
         a.run()

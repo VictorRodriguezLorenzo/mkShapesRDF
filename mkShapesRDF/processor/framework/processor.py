@@ -31,6 +31,7 @@ class Processor:
         limitFiles=-1,
         dryRun=0,
         MT=False,
+        isRandomizedParameters=False,
     ):
         """
         Initialize the processor object
@@ -78,6 +79,8 @@ class Processor:
             If True, use multi-threading in the runner (``ROOT.EnableImplicitMT()``)
             Be careful since the events order is not preserved!
 
+        isRandomizedParameters : bool, optional, default: False
+            Set to True if the input samples were generated with randomized parameters; otherwise, set to False.
         """
         self.condorDir = condorDir
         self.eosDir = eosDir
@@ -94,6 +97,7 @@ class Processor:
         self.dryRun = dryRun
         self.path = getFrameworkPath() + "mkShapesRDF/processor/framework/"
         self.MT = MT
+        self.isRandomizedParameters = isRandomizedParameters
 
     def getFiles_cfg(self, sampleName):
         """
@@ -111,22 +115,10 @@ class Processor:
         """
         if self.inputFolder == "":
             # if no inputFolder is given -> DAS
-            try:
-                d = {
-                    "process": self.Samples[sampleName]["nanoAOD"],
-                    "instance": self.Samples[sampleName].get("instance", ""),
-                }
-            except KeyError:
-               	d = {
-                    "process": sampleName,
-                    "folder": self.Samples[sampleName]["folder"],
-                    'isLatino': False
-                }
-                if self.inputFolder != "":
-                     raise RuntimeError(f"When specifying the sample via an input folder for sample {sampleName}, you cannot, at the same time, set an inputFolder")
-                self.inputFolder = d['folder']
-            except KeyError:
-                raise KeyError(f"You need to specify either \"nanoAOD\" or \"folder\" keys for sample {sampleName}")
+            d = {
+                "process": self.Samples[sampleName]["nanoAOD"],
+                "instance": self.Samples[sampleName].get("instance", ""),
+            }
             if self.redirector != "":
                 d["redirector"] = self.redirector
         else:
@@ -171,7 +163,6 @@ class Processor:
         sys.path.insert(0, list(filter(lambda k: 'myenv' in k, sys.path))[0])
         import ROOT
         import os
-        import getpass
         ROOT.gROOT.SetBatch(True)
         """
         )
@@ -236,14 +227,7 @@ class Processor:
 
         os.system("chmod +x " + jobDir + "run.sh")
 
-        # Select site
-        uname = os.uname()[1]
-        site = ''
-        if 'portal'   in uname: site = 'kit'
-        elif "bms"    in uname: site = 'kit'
-        elif "lxplus" in uname: site = 'cern'
-
-        eosTmpPath = Sites[site]["eosTmpWorkDir"]
+        eosTmpPath = Sites["eosTmpWorkDir"]
         
         frameworkPath = getFrameworkPath() + "mkShapesRDF"
 
@@ -253,14 +237,13 @@ class Processor:
         self.fPy += dedent(
             """
         files = []
-        eosTmpPath = """+eosTmpPath+"""
-        print(f'eosTmpPath = {eosTmpPath}')
+        eosTmpPath = '"""+eosTmpPath+"""'
         for f in _files:
             filename = f.split('/')[-1]
-            if eosTmpPath=='USEDAS':
+            if eosTmpPath=="USEDAS":
                 filename = os.environ['TMPDIR'] + '/input__' + filename
             else:
-                filename = eosTmpPath + getpass.getuser() + '/input__' + filename
+                filename = eosTmpPath + 'input__' + filename
             files.append(filename)
             proc = 0
             if "root://" in f:
@@ -276,118 +259,7 @@ class Processor:
                 sys.exit(1)\n
         """
         )
-        
-        self.fPy += f"ROOT.gInterpreter.Declare('#include \"{frameworkPath}/include/headers.hh\"')\n"
 
-        self.fPy += "df = mRDF()\n"
-        self.fPy += 'df = df.readRDF("Events", files)\n'
-
-        self.fPy += "values = []\n"
-
-        self.addDeclareLines(self.step)
-
-        self.fPy += dedent(
-            """
-        snapshots = []
-        snapshot_destinations = []
-        for val in values:
-            if "snapshot" == val[0]:
-                snapshots.append(val[1][0])
-                snapshot_destinations.append(val[2])
-
-        import uproot
-        import awkward
-        for snapshot in snapshots:
-            snapshot(df.df)
-
-        finalFiles = []
-        for destination in snapshot_destinations:
-            copyFromInputFiles = destination[1]
-            outputFilename = destination[0]
-
-            if copyFromInputFiles:
-                Snapshot.CopyFromInputFiles(outputFilename, files)
-
-            outputFolderPath = destination[2]
-            outputFilenameEOS = destination[3]
-
-            # Create output folder
-            proc = subprocess.Popen(f"mkdir -p {outputFolderPath}", shell=True)
-            """
-        )
-        # This is needed at KIT since the eosDir is not a real common directory
-        if site == 'kit':
-            self.fPy += """    proc = subprocess.Popen(f"chmod -R a+rwx """+self.eosDir+"""", shell=True)"""
-
-        self.fPy += dedent(
-                """
-            proc.wait()
-
-            # Copy output file in output folder
-            proc = subprocess.Popen(f"cp {outputFilename} {outputFolderPath}/{outputFilenameEOS}", shell=True)
-            proc.wait()
-            finalFiles.append(f'{outputFolderPath}/{outputFilenameEOS}')
-
-            # Remove the output file from local
-            proc = subprocess.Popen(f"rm {outputFilename}", shell=True)
-            proc.wait()
-            
-        def sciNot(value):
-            # scientific notation
-            return "{:.3e}".format(value)
-        
-        data = []
-        reservedValuesNames = ["snapshot", "variables"]
-        for val in values:
-            if val[0] in reservedValuesNames:
-                continue
-            if "list" in str(type(val)):
-                if str(type(val[0])) == "<class 'function'>":
-                    data.append(val[0](*val[1:]))
-                else:
-                    data.append([val[1], sciNot(val[0].GetValue())])
-            else:
-                data.append("", sciNot(val.GetValue()))
-
-        from tabulate import tabulate
-
-        print(tabulate(data, headers=["desc.", "value"]))
-            """)
-
-        if self.inputFolder != "" and eosTmpPath!='USEDAS':
-            self.fPy += dedent("""
-        for f in files:
-            print('Removing input file', f)
-            proc = subprocess.Popen(f"rm {f}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            out, err = proc.communicate()
-            print(out.decode('utf-8'))
-            print(err.decode('utf-8'), file=sys.stderr)
-            """)
-
-        self.fPy += dedent("""
-        # check final file integrity
-        for finalFile in finalFiles:
-            f = uproot.open(finalFile)
-            branches = [k.name for k in f['Events'].branches]
-            print(f['Events'][branches[0]].array(entry_stop=10))
-            f.close()
-        """)
-        
-        self.fPy = self.fPy.replace("RPLME_FW", frameworkPath)
-        self.fPy = self.fPy.replace("RPLME_CMSSW", Productions[self.prodName]["cmssw"])
-        if Productions[self.prodName]["isData"]:
-            self.fPy = self.fPy.replace("RPLME_LUMI", Productions[self.prodName]["jsonFile"])
-
-        #: folderPathEos is the output folder path (not ending with ``/`` so that is possible to add suffix to the folder)
-        if self.inputFolder == "":
-            folderPathEos = self.eosDir + "/" + self.prodName + "/"  # + self.step
-            folderPathEos += Steps[self.step].get("outputFolder", self.step)
-        else:
-            folderPathEos = self.inputFolder + "__"
-            folderPathEos += Steps[self.step].get("outputFolder", self.step)
-            
-        self.fPy = self.fPy.replace("RPLME_EOSPATH", folderPathEos)
-        
         allSamples = []
 
         samplesToProcess = self.Samples.keys()
@@ -428,98 +300,344 @@ class Processor:
 
             print(files[0])
 
-            nParts = ceil(len(files) / self.maxFilesPerJob)
+        self.fPy += f"ROOT.gInterpreter.Declare('#include \"{frameworkPath}/include/headers.hh\"')\n"
 
-            sample_fPy = self.fPy.replace("RPLME_SAMPLENAME", sampleName)
+        if self.isRandomizedParameters:
+            self.fPy += dedent(
+                        """
+                from mkShapesRDF.processor.scripts.ParameterCategorizer import MassPointFileMapper
+                mapper = MassPointFileMapper()
 
-            if "RPLME_genEventSumw" in self.fPy:
-                import ROOT
+                mass_map = mapper.map_masspoints(files) 
+                model_tags = list(mass_map.keys())
+                print("Extracted model tags:", model_tags)
+            """
+            )
 
-                ROOT.gROOT.SetBatch(True)
-                ROOT.EnableImplicitMT()
-                df = ROOT.RDataFrame("Runs", files)
-                genEventSumw = df.Sum("genEventSumw").GetValue()
-                sample_fPy = sample_fPy.replace("RPLME_genEventSumw", str(genEventSumw))
+            self.fPy += "values = []\n"
 
-            for part in range(nParts):
-                _files = files[
-                    part * self.maxFilesPerJob : (part + 1) * self.maxFilesPerJob
-                ]
-                _fPy = sample_fPy.replace("RPLME_FILES", str(_files))
-                outputFilename = (
-                    "nanoLatino_" + sampleName + "__part" + str(part) + ".root"
-                )
+            from mkShapesRDF.processor.scripts.modelCategorizer import MassPointFileMapper
+            from mkShapesRDF.processor.framework.mRDF import mRDF
 
-                if self.inputFolder != "":
-                    outputFilename = _files[0].split("/")[-1]
+            mapper = MassPointFileMapper()
 
-                if eosTmpPath=="'USEDAS'":
-                    #if not os.path.exists(os.environ['TMPDIR']):
-                    #    os.mkdir(os.environ['TMPDIR'])
-                    _fPy = _fPy.replace("RPLME_OUTPUTFILENAMETMP", "os.environ['TMPDIR']")
-                    # print(f"Using USEDAS")
+            mass_map = mapper.map_masspoints(files, self.redirector)
+            model_tags = list(mass_map.keys())
+
+            print("\nThe models which have been succesfully retrieved are:")
+            print(model_tags)
+
+            self.fPy += 'df_all = mRDF()\n'
+            self.fPy += 'df_all = df_all.readRDF("Events", files)\n'
+           
+            template = self.fPy
+            for model in model_tags:
+                self.fPy = template
+                sampleName = model
+                self.fPy = self.fPy.replace("RPLME_SAMPLENAME", sampleName)
+                self.fPy += f'df = df_all.Filter("GenModel__{model}")\n'
+                
+                self.addDeclareLines(self.step)
+
+                self.fPy += dedent(f'''
+                snapshots = []
+                snapshot_destinations = []
+                for val in values:
+                    if val[0] == "snapshot":
+                        snapshots.append(val[1][0])
+                        snapshot_destinations.append(val[2])
+                
+                import uproot
+                import awkward
+                for snapshot in snapshots:
+                    snapshot(df.df)
+                
+                finalFiles = []
+                for destination in snapshot_destinations:
+                    copyFromInputFiles = destination[1]
+                    outputFilename = "{model}_" + destination[0]
+                
+                    if copyFromInputFiles:
+                        Snapshot.CopyFromInputFiles(outputFilename, files)
+                
+                    outputFolderPath = destination[2]
+                    outputFilenameEOS = destination[3]
+                
+                    # Create output folder
+                    proc = subprocess.Popen(f"mkdir -p {{outputFolderPath}}", shell=True)
+                    proc.wait()
+                
+                    # Copy output file in output folder
+                    proc = subprocess.Popen(f"cp {{outputFilename}} {{outputFolderPath}}/{model}_{{outputFilenameEOS}}", shell=True)
+                    proc.wait()
+                    finalFiles.append(f"{{outputFolderPath}}/{model}_{{outputFilenameEOS}}")
+                
+                    # Remove the output file from local
+                    proc = subprocess.Popen(f"rm {{outputFilename}}", shell=True)
+                    proc.wait()
+                
+                def sciNot(value):
+                    # scientific notation
+                    return "{{:.3e}}".format(value)
+                
+                data = []
+                reservedValuesNames = ["snapshot", "variables"]
+                for val in values:
+                    if val[0] in reservedValuesNames:
+                        continue
+                    if "list" in str(type(val)):
+                        if str(type(val[0])) == "<class 'function'>":
+                            data.append(val[0](*val[1:]))
+                        else:
+                            data.append([val[1], sciNot(val[0].GetValue())])
+                    else:
+                        data.append(["", sciNot(val.GetValue())])
+                
+                from tabulate import tabulate
+                print(tabulate(data, headers=["desc.", "value"]))
+                ''')
+
+
+                if self.inputFolder != "" and eosTmpPath!="USEDAS":
+                    self.fPy += dedent("""
+                for f in files:
+                    print('Removing input file', f)
+                    proc = subprocess.Popen(f"rm {f}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    out, err = proc.communicate()
+                    print(out.decode('utf-8'))
+                    print(err.decode('utf-8'), file=sys.stderr)
+                        """)
+
+                self.fPy += dedent("""
+                # check final file integrity
+                for finalFile in finalFiles:
+                    f = uproot.open(finalFile)
+                    branches = [k.name for k in f['Events'].branches]
+                    print(f['Events'][branches[0]].array(entry_stop=10))
+                    f.close() \n\n
+                    """)
+
+                self.fPy = self.fPy.replace("RPLME_FW", frameworkPath)
+                self.fPy = self.fPy.replace("RPLME_CMSSW", Productions[self.prodName]["cmssw"])
+                if Productions[self.prodName]["isData"]:
+                    self.fPy = self.fPy.replace("RPLME_LUMI", Productions[self.prodName]["jsonFile"])
+
+                #: folderPathEos is the output folder path (not ending with `/ so that is possible to add suffix to the folder)
+                if self.inputFolder == "":
+                    folderPathEos = self.eosDir + "/" + self.prodName + "/"  # + self.step
+                    folderPathEos += Steps[self.step].get("outputFolder", self.step)
                 else:
-                    _fPy = _fPy.replace("RPLME_OUTPUTFILENAMETMP", eosTmpPath)
-                    # print(f"Using {eosTmpPath}")
-                _fPy = _fPy.replace("RPLME_OUTPUTFILENAME", outputFilename)
+                    folderPathEos = self.inputFolder + "__"
+                    folderPathEos += Steps[self.step].get("outputFolder", self.step)
 
-                jobDirPart = jobDir + sampleName + "__part" + str(part) + "/"
-                Path(jobDirPart).mkdir(parents=True, exist_ok=True)
+                self.fPy = self.fPy.replace("RPLME_EOSPATH", folderPathEos)
 
-                with open(jobDirPart + "/script.py", "w") as f:
-                    f.write(_fPy)
-                allSamples.append(sampleName + "__part" + str(part))
+
+                for sampleName in samplesToProcess:
+                    nParts = ceil(len(files) / self.maxFilesPerJob)
+                    if "RPLME_genEventSumw" in self.fPy:
+                        import ROOT
+
+                        ROOT.gROOT.SetBatch(True)
+                        ROOT.EnableImplicitMT()
+
+                        from mkShapesRDF.processor.framework.mRDF import mRDF
+                        df = mRDF()
+
+                        df = ROOT.RDataFrame("Runs", files)
+                        genEventSumw = df.Sum(f"genEventSumw__{model}").GetValue()
+                        self.fPy = self.fPy.replace("RPLME_genEventSumw", str(genEventSumw))
+
+                    for part in range(nParts):
+                        _files = files[
+                                part * self.maxFilesPerJob : (part + 1) * self.maxFilesPerJob
+                                ]
+                        self.fPy = self.fPy.replace("RPLME_FILES", str(_files))
+                        outputFilename = (
+                                "nanoLatino_" + f"{model}__part" + str(part) + ".root"
+                                )
+
+                        if self.inputFolder != "":
+                            outputFilename = _files[0].split("/")[-1]
+
+                        if eosTmpPath=="USEDAS":
+                            #if not os.path.exists(os.environ['TMPDIR']):
+                            #    os.mkdir(os.environ['TMPDIR'])
+                            self.fPy = self.fPy.replace("RPLME_OUTPUTFILENAMETMP", "os.environ['TMPDIR']")
+                        else:
+                            self.fPy = self.fPy.replace("RPLME_OUTPUTFILENAMETMP", eosTmpPath)
+                        self.fPy = self.fPy.replace("RPLME_OUTPUTFILENAME", outputFilename)
+
+                        jobDirPart = jobDir + f"{model}__part" + str(part) + "/"
+                        Path(jobDirPart).mkdir(parents=True, exist_ok=True)
+                        with open(jobDirPart + "/script.py", "w") as f:
+                            f.write(self.fPy)
+                        allSamples.append(f"{model}__part" + str(part))
+
+        else:
+            self.fPy += "df = mRDF()\n"
+            self.fPy += 'df = df.readRDF("Events", files)\n'
+
+            self.fPy += "values = []\n"
+
+            self.addDeclareLines(self.step)
+
+            self.fPy += dedent(
+                """
+            snapshots = []
+            snapshot_destinations = []
+            for val in values:
+                if "snapshot" == val[0]:
+                    snapshots.append(val[1][0])
+                    snapshot_destinations.append(val[2])
+
+            import uproot
+            import awkward
+            for snapshot in snapshots:
+                snapshot(df.df)
+
+            finalFiles = []
+            for destination in snapshot_destinations:
+                copyFromInputFiles = destination[1]
+                outputFilename = destination[0]
+
+                if copyFromInputFiles:
+                    Snapshot.CopyFromInputFiles(outputFilename, files)
+
+                outputFolderPath = destination[2]
+                outputFilenameEOS = destination[3]
+
+                # Create output folder
+                proc = subprocess.Popen(f"mkdir -p {outputFolderPath}", shell=True)
+                proc.wait()
+
+                # Copy output file in output folder
+                proc = subprocess.Popen(f"cp {outputFilename} {outputFolderPath}/{outputFilenameEOS}", shell=True)
+                proc.wait()
+                finalFiles.append(f'{outputFolderPath}/{outputFilenameEOS}')
+
+                # Remove the output file from local
+                proc = subprocess.Popen(f"rm {outputFilename}", shell=True)
+                proc.wait()
+                
+            def sciNot(value):
+                # scientific notation
+                return "{:.3e}".format(value)
+            
+            data = []
+            reservedValuesNames = ["snapshot", "variables"]
+            for val in values:
+                if val[0] in reservedValuesNames:
+                    continue
+                if "list" in str(type(val)):
+                    if str(type(val[0])) == "<class 'function'>":
+                        data.append(val[0](*val[1:]))
+                    else:
+                        data.append([val[1], sciNot(val[0].GetValue())])
+                else:
+                    data.append("", sciNot(val.GetValue()))
+
+            from tabulate import tabulate
+
+            print(tabulate(data, headers=["desc.", "value"]))
+                """)
+
+            if self.inputFolder != "" and eosTmpPath!="USEDAS":
+                self.fPy += dedent("""
+            for f in files:
+                print('Removing input file', f)
+                proc = subprocess.Popen(f"rm {f}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                out, err = proc.communicate()
+                print(out.decode('utf-8'))
+                print(err.decode('utf-8'), file=sys.stderr)
+                """)
+
+            self.fPy += dedent("""
+            # check final file integrity
+            for finalFile in finalFiles:
+                f = uproot.open(finalFile)
+                branches = [k.name for k in f['Events'].branches]
+                print(f['Events'][branches[0]].array(entry_stop=10))
+                f.close()
+            """)
+            
+            self.fPy = self.fPy.replace("RPLME_FW", frameworkPath)
+            self.fPy = self.fPy.replace("RPLME_CMSSW", Productions[self.prodName]["cmssw"])
+            if Productions[self.prodName]["isData"]:
+                self.fPy = self.fPy.replace("RPLME_LUMI", Productions[self.prodName]["jsonFile"])
+
+            #: folderPathEos is the output folder path (not ending with ``/`` so that is possible to add suffix to the folder)
+            if self.inputFolder == "":
+                folderPathEos = self.eosDir + "/" + self.prodName + "/"  # + self.step
+                folderPathEos += Steps[self.step].get("outputFolder", self.step)
+            else:
+                folderPathEos = self.inputFolder + "__"
+                folderPathEos += Steps[self.step].get("outputFolder", self.step)
+                
+            self.fPy = self.fPy.replace("RPLME_EOSPATH", folderPathEos)
+            for sampleName in samplesToProcess:
+                nParts = ceil(len(files) / self.maxFilesPerJob)
+
+                sample_fPy = self.fPy.replace("RPLME_SAMPLENAME", sampleName)
+
+                if "RPLME_genEventSumw" in self.fPy:
+                    import ROOT
+
+                    ROOT.gROOT.SetBatch(True)
+                    ROOT.EnableImplicitMT()
+                    df = ROOT.RDataFrame("Runs", files)
+                    genEventSumw = df.Sum("genEventSumw").GetValue()
+                    sample_fPy = sample_fPy.replace("RPLME_genEventSumw", str(genEventSumw))
+
+                for part in range(nParts):
+                    _files = files[
+                        part * self.maxFilesPerJob : (part + 1) * self.maxFilesPerJob
+                    ]
+                    _fPy = sample_fPy.replace("RPLME_FILES", str(_files))
+                    outputFilename = (
+                        "nanoLatino_" + sampleName + "__part" + str(part) + ".root"
+                    )
+
+                    if self.inputFolder != "":
+                        outputFilename = _files[0].split("/")[-1]
+
+                    if eosTmpPath=="USEDAS":
+                        #if not os.path.exists(os.environ['TMPDIR']):
+                        #    os.mkdir(os.environ['TMPDIR'])
+                        _fPy = _fPy.replace("RPLME_OUTPUTFILENAMETMP", "os.environ['TMPDIR']")
+                    else:
+                        _fPy = _fPy.replace("RPLME_OUTPUTFILENAMETMP", eosTmpPath)
+                    _fPy = _fPy.replace("RPLME_OUTPUTFILENAME", outputFilename)
+
+                    jobDirPart = jobDir + sampleName + "__part" + str(part) + "/"
+                    Path(jobDirPart).mkdir(parents=True, exist_ok=True)
+
+                    with open(jobDirPart + "/script.py", "w") as f:
+                        f.write(_fPy)
+                    allSamples.append(sampleName + "__part" + str(part))
 
         fJdl = dedent(
             """
-            universe = vanilla
-            executable = run.sh
-            arguments = $(Folder)
-            
-            should_transfer_files = YES
-            transfer_input_files = $(Folder)/script.py
-            
-            output = $(Folder)/out.txt
-            error  = $(Folder)/err.txt
-            log    = $(Folder)/log.txt
-            
-            request_cpus   = 1
-            request_memory = 12GB
-            request_disk   = 10GB
-            requirements = (OpSysAndVer =?= "AlmaLinux9")
-            +JobFlavour = "testmatch"
-            
-            queue 1 Folder in RPLME_ALLSAMPLES
-            """
+universe = vanilla
+executable = run.sh
+arguments = $(Folder)
+
+should_transfer_files = YES
+transfer_input_files = $(Folder)/script.py
+
+output = $(Folder)/out.txt
+error  = $(Folder)/err.txt
+log    = $(Folder)/log.txt
+
+request_cpus   = 1
+request_memory = 12GB
+request_disk   = 10GB
+requirements = (OpSysAndVer =?= "AlmaLinux9")
++JobFlavour = "testmatch"
+
+queue 1 Folder in RPLME_ALLSAMPLES
+"""
         )
-
-        if site == 'kit':
-            fJdl = dedent(
-                """
-                universe = container
-                container_image = /cvmfs/unpacked.cern.ch/registry.hub.docker.com/cverstege/alma9-gridjob:latest
-
-                executable = run.sh
-                arguments = $(Folder)
-                
-                should_transfer_files = YES
-                transfer_input_files = $(Folder)/script.py
-                
-                output = $(Folder)/out.txt
-                error  = $(Folder)/err.txt
-                log    = $(Folder)/log.txt
-                
-                request_cpus   = 1
-                request_memory = 8000
-                request_disk   = 10000000
-                +JobFlavour = "testmatch"
-                
-                accounting_group = cms.higgs
-
-                queue 1 Folder in RPLME_ALLSAMPLES
-                """
-            )
-        
 
         fJdl = fJdl.replace("RPLME_ALLSAMPLES", " ".join(allSamples))
         with open(jobDir + "/submit.jdl", "w") as f:

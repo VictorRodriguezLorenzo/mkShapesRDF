@@ -132,12 +132,7 @@ def plot_event(
         extents_y.extend(np.abs(pts[:, 1]))
 
     draw_parametric_ellipse(H1, "N₁ ellipse", "navy")
-    draw_parametric_ellipse(
-        H2,
-        "N₂ ellipse",
-        "darkorange",
-        transform=lambda xy: np.array([met_x - xy[0], met_y - xy[1]]),
-    )
+    draw_parametric_ellipse(H2,"N₂ ellipse","darkorange",transform=lambda xy: np.array([met_x - xy[0], met_y - xy[1]]))
 
     # Formatting
     ax.set_xlabel("pT_x (GeV)")
@@ -636,10 +631,7 @@ class NuSolutionProducer(Module):
             }
 
             c = ROOT::Math::VectorUtil::CosTheta(b, mu);
-            s = std::sqrt(std::max(0.0, 1.0 - c * c));
-            if (s < 1e-12) {
-                s = 1e-12;
-            }
+            s = std::sqrt(1.0 - c * c);
 
             if (debug_enabled()) {
                 debug_log("nuSolutionSet: cos(theta)=" + std::to_string(c) +
@@ -651,9 +643,6 @@ class NuSolutionProducer(Module):
 
             double Bb = b.Beta();
             double Bm = mu.Beta();
-            if (std::abs(Bb) < 1e-12) {
-                Bb = (Bb >= 0 ? 1e-12 : -1e-12);
-            }
 
             if (debug_enabled()) {
                 std::ostringstream oss;
@@ -662,7 +651,7 @@ class NuSolutionProducer(Module):
                 debug_log(oss.str());
             }
 
-            const double Bm2 = std::max(1e-12, Bm * Bm);
+            const double Bm2 = Bm * Bm;
             Sx = (x0 * Bm - mu.P() * (1.0 - Bm * Bm)) / Bm2;
             Sy = (x0p / Bb - c * Sx) / s;
 
@@ -683,21 +672,23 @@ class NuSolutionProducer(Module):
 
             double Z2 = x1 * x1 * Om2 - (Sy - w * Sx) * (Sy - w * Sx) - (mW2 - x0 * x0 - eps2);
             if (debug_enabled()) {
-                debug_log("nuSolutionSet: computed parameters Sx=" + std::to_string(Sx) +
-                          ", Sy=" + std::to_string(Sy) +
-                          ", w=" + std::to_string(w) +
-                          ", Om2=" + std::to_string(Om2) +
-                          ", eps2=" + std::to_string(eps2) +
-                          ", Z2=" + std::to_string(Z2));
+                debug_log(
+                    "nuSolutionSet: computed parameters Sx=" + std::to_string(Sx) +
+                    ", Sy=" + std::to_string(Sy) +
+                    ", w=" + std::to_string(w) +
+                    ", w_=" + std::to_string(w_) +
+                    ", Om2=" + std::to_string(Om2) +
+                    ", eps2=" + std::to_string(eps2) +
+                    ", Z2=" + std::to_string(Z2) +
+                    "  x0=" + std::to_string(x0) +
+                    ", x0p=" + std::to_string(x0p) +
+                    "  x1=" + std::to_string(x1) +
+                    ", y1=" + std::to_string(y1) +
+                    "  c=" + std::to_string(c) +
+                    ", s=" + std::to_string(s)
+                );
             }
-            //cout << "Z2: " << Z2 << std::endl;
-            //cout << "Om2: " << Om2 << std::endl;  
-            //cout << "eps2: " << eps2 << std::endl;
-            //cout << "x0: " << x0 << ", x0p: " << x0p << std::endl;
-            //cout << "Sx: " << Sx << ", Sy: " << Sy << std::endl;
-            //cout << "w: " << w << ", w_: " << w_ << std::endl;
-            //cout << "x1: " << x1 << ", y1: " << y1 << std::endl;
-            //cout << "c: " << c << ", s: " << s << std::endl;
+ 
             // Calculate Z
             Z = std::sqrt(std::max(0.0, Z2));
             if (debug_enabled() && Z2 < 0.0) {
@@ -781,9 +772,6 @@ class NuSolutionProducer(Module):
                 double _w = w;
                 double _Om = std::sqrt(Om2);
                 TMatrixD H_tilde(3, 3);
-                //cout << "Om: " << _Om << std::endl;
-                //cout << "Z: " << _Z << std::endl;
-                //cout << "x1: " << _x1 << ", y1: " << _y1 << ", p: " << p << std::endl;
                 H_tilde(0,0) =  _Z/_Om; H_tilde(0,1) = 0; H_tilde(0,2) = _x1-p;
                 H_tilde(1,0) = _w*_Z/_Om; H_tilde(1,1) = 0; H_tilde(1,2) = _y1;
                 H_tilde(2,0) = 0; H_tilde(2,1) = _Z; H_tilde(2,2) = 0;
@@ -1105,7 +1093,7 @@ class NuSolutionProducer(Module):
                     }
 
                     for (const auto& sol : intersections) {
-                        TVectorD nu1 = ss1.getH() * sol;
+                        TVectorD nu1 = sol;
                         TVectorD nu2 = S * sol;
 
                         NuPair pair;
@@ -1245,6 +1233,8 @@ class NuSolutionProducer(Module):
                     H2.ResizeTo(pairing1.H2.GetNrows(), pairing1.H2.GetNcols());
                     H1 = pairing1.H1;
                     H2 = pairing1.H2;
+                    N1_.ResizeTo(pairing1.N1.GetNrows(), pairing1.N1.GetNcols());
+                    N2_.ResizeTo(pairing1.N2.GetNrows(), pairing1.N2.GetNcols());
                     N1_ = pairing1.N1;
                     N2_ = pairing1.N2;
                     usedMinimizerFallback_ = pairing1.usedMinimizerFallback;
@@ -1258,6 +1248,8 @@ class NuSolutionProducer(Module):
                     H2.ResizeTo(pairing2.H2.GetNrows(), pairing2.H2.GetNcols());
                     H1 = pairing2.H1;
                     H2 = pairing2.H2;
+                    N1_.ResizeTo(pairing2.N1.GetNrows(), pairing2.N1.GetNcols());
+                    N2_.ResizeTo(pairing2.N2.GetNrows(), pairing2.N2.GetNcols());
                     N1_ = pairing2.N1;
                     N2_ = pairing2.N2;
                     usedMinimizerFallback_ = pairing2.usedMinimizerFallback;
@@ -1406,12 +1398,7 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
         monitor_df = df.Filter("pass_bjets")
         passed_events = monitor_df.Count()
         total_events = df.Count()
-        values.append([
-            format_cutflow,
-            "tt::twoBjets_twoLeptons",
-            passed_events,
-            total_events,
-        ])
+        values.append([format_cutflow, "tt::twoBjets_twoLeptons", passed_events, total_events])
 
         df = df.Define("pass_bjets_float", "pass_bjets ? 1.0 : 0.0")
         df = df.Define(
@@ -1450,19 +1437,19 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
 #                break
        
         # Define leptons momenta in x and y
-        df = df.Define("l1_pt_x", "pass_bjets ? l1.Px() : -999.0")
-        df = df.Define("l1_pt_y", "pass_bjets ? l1.Py() : -999.0")
-        df = df.Define("l1_phi", "pass_bjets ? l1.Phi() : -999.0")
-        df = df.Define("l2_pt_x", "pass_bjets ? l2.Px() : -999.0")
-        df = df.Define("l2_pt_y", "pass_bjets ? l2.Py() : -999.0")
-        df = df.Define("l2_phi", "pass_bjets ? l2.Phi() : -999.0")
+        df = df.Define("l1_pt_x", "pass_bjets ? l1.Px() : -9999.0")
+        df = df.Define("l1_pt_y", "pass_bjets ? l1.Py() : -9999.0")
+        df = df.Define("l1_phi", "pass_bjets ? l1.Phi() : -9999.0")
+        df = df.Define("l2_pt_x", "pass_bjets ? l2.Px() : -9999.0")
+        df = df.Define("l2_pt_y", "pass_bjets ? l2.Py() : -9999.0")
+        df = df.Define("l2_phi", "pass_bjets ? l2.Phi() : -9999.0")
         # Define b-jet momenta in x and y
-        df = df.Define("b1_pt_x",  "pass_bjets ? b1.Px() : -999.0")
-        df = df.Define("b1_pt_y",  "pass_bjets ? b1.Py() : -999.0")
-        df = df.Define("b1_phi",  "pass_bjets ? b1.Phi() : -999.0")
-        df = df.Define("b2_pt_x",  "pass_bjets ? b2.Px() : -999.0")
-        df = df.Define("b2_pt_y",  "pass_bjets ? b2.Py() : -999.0")
-        df = df.Define("b2_phi",  "pass_bjets ? b2.Phi() : -999.0")
+        df = df.Define("b1_pt_x",  "pass_bjets ? b1.Px() : -9999.0")
+        df = df.Define("b1_pt_y",  "pass_bjets ? b1.Py() : -9999.0")
+        df = df.Define("b1_phi",  "pass_bjets ? b1.Phi() : -9999.0")
+        df = df.Define("b2_pt_x",  "pass_bjets ? b2.Px() : -9999.0")
+        df = df.Define("b2_pt_y",  "pass_bjets ? b2.Py() : -9999.0")
+        df = df.Define("b2_phi",  "pass_bjets ? b2.Phi() : -9999.0")
 
 
 #        # Build single-neutrino solutions for all b/lepton pairings
@@ -1524,27 +1511,27 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
 
         df = df.Define(
             "H1_flat",
-            "pass_bjets ? std::vector<double>(dnsol.getH1().GetMatrixArray(), dnsol.getH1().GetMatrixArray() + 9) : std::vector<double>(9, -999.0)",
+            "pass_bjets ? std::vector<double>(dnsol.getH1().GetMatrixArray(), dnsol.getH1().GetMatrixArray() + 9) : std::vector<double>(9, -9999.0)",
         )
         df = df.Define(
             "H2_flat",
-            "pass_bjets ? std::vector<double>(dnsol.getH2().GetMatrixArray(), dnsol.getH2().GetMatrixArray() + 9) : std::vector<double>(9, -999.0)",
+            "pass_bjets ? std::vector<double>(dnsol.getH2().GetMatrixArray(), dnsol.getH2().GetMatrixArray() + 9) : std::vector<double>(9, -9999.0)",
         )
 
         df = df.Define(
             "N1_flat",
-            "pass_bjets ? std::vector<double>(dnsol.getN1().GetMatrixArray(), dnsol.getN1().GetMatrixArray() + 9) : std::vector<double>(9, -999.0)",
+            "pass_bjets ? std::vector<double>(dnsol.getN1().GetMatrixArray(), dnsol.getN1().GetMatrixArray() + 9) : std::vector<double>(9, -9999.0)",
         )
 
         df = df.Define(
             "N2_flat",
-            "pass_bjets ? std::vector<double>(dnsol.getN2().GetMatrixArray(), dnsol.getN2().GetMatrixArray() + 9) : std::vector<double>(9, -999.0)",
+            "pass_bjets ? std::vector<double>(dnsol.getN2().GetMatrixArray(), dnsol.getN2().GetMatrixArray() + 9) : std::vector<double>(9, -9999.0)",
         )
 
-        df = df.Define("nu1_px", "pass_bjets ? dnsol.nu1_px() : -999.0")
-        df = df.Define("nu1_py", "pass_bjets ? dnsol.nu1_py() : -999.0")
-        df = df.Define("nu2_px", "pass_bjets ? dnsol.nu2_px() : -999.0")
-        df = df.Define("nu2_py", "pass_bjets ? dnsol.nu2_py() : -999.0")
+        df = df.Define("nu1_px", "pass_bjets ? dnsol.nu1_px() : -9999.0")
+        df = df.Define("nu1_py", "pass_bjets ? dnsol.nu1_py() : -9999.0")
+        df = df.Define("nu2_px", "pass_bjets ? dnsol.nu2_px() : -9999.0")
+        df = df.Define("nu2_py", "pass_bjets ? dnsol.nu2_py() : -9999.0")
 
         df = df.Define(
             "dnsol_usedMinimizerFallback",
@@ -1581,18 +1568,18 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
         )
 
         # Cosine between leptons in top rest frames
-        df = df.Define("chel", "pass_bjets ? l1_top_rf.Dot(l2_top_rf) : -999.0")
+        df = df.Define("chel", "pass_bjets ? l1_top_rf.Dot(l2_top_rf) : -9999.0")
 
         # Absolute Δφ between tops
         df = df.Define(
             "dphi_ttbar",
-            "pass_bjets ? fabs(TVector2::Phi_mpi_pi(top1.Phi() - top2.Phi())) : -999.0",
+            "pass_bjets ? fabs(TVector2::Phi_mpi_pi(top1.Phi() - top2.Phi())) : -9999.0",
         )
 
         # MET residual
         df = df.Define(
             "pdark",
-            "pass_bjets ? ((met_x - nu1_px - nu2_px)*(met_x - nu1_px - nu2_px) + (met_y - nu1_py - nu2_py)*(met_y - nu1_py - nu2_py)) : -999.0",
+            "pass_bjets ? ((met_x - nu1_px - nu2_px)*(met_x - nu1_px - nu2_px) + (met_y - nu1_py - nu2_py)*(met_y - nu1_py - nu2_py)) : -9999.0",
         );
 
         # Drop intermediate helper columns to keep the dataframe clean

@@ -3,6 +3,7 @@ import math
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import os
+from typing import Optional
 
 def flat_to_matrix_3x3(flat):
     """Convert flattened list/array of length 9 into a 3×3 matrix."""
@@ -39,31 +40,56 @@ def parametrize_ellipse(H):
     angle = math.degrees(math.atan2(vec1[1], vec1[0]))
     return a, b, angle
 
-def plot_event(nu1_px, nu1_py,
-               nu2_px, nu2_py,
-               met_x, met_y,
-               l1_pt_x, l1_pt_y,
-               l2_pt_x, l2_pt_y,
-               b1_pt_x, b1_pt_y,
-               b2_pt_x, b2_pt_y,
-               H1_flat, H2_flat,
-               event_idx):
+def plot_event(
+    nu1_px,
+    nu1_py,
+    nu2_px,
+    nu2_py,
+    met_x,
+    met_y,
+    l1_pt_x,
+    l1_pt_y,
+    l2_pt_x,
+    l2_pt_y,
+    b1_pt_x,
+    b1_pt_y,
+    b2_pt_x,
+    b2_pt_y,
+    H1_flat,
+    H2_flat,
+    event_idx,
+    output_dir: Optional[str] = None,
+):
+
+    if output_dir is None:
+        output_dir = os.environ.get("NU_SOLUTION_PLOT_DIR")
+    if not output_dir:
+        return
 
     fig, ax = plt.subplots(figsize=(8, 8))
 
     def arrow(x, y, label, color, lw=1.5):
-        ax.arrow(0, 0, x, y, head_width=2, length_includes_head=True,
-                 color=color, alpha=0.8, linewidth=lw)
+        ax.arrow(
+            0,
+            0,
+            x,
+            y,
+            head_width=2,
+            length_includes_head=True,
+            color=color,
+            alpha=0.8,
+            linewidth=lw,
+        )
         ax.plot([], [], color=color, label=label)
 
     # Momentum vectors
-    arrow(nu1_px, nu1_py, "Neutrino 1", 'blue')
-    arrow(nu2_px, nu2_py, "Neutrino 2", 'pink')
-    arrow(met_x, met_y, "MET", 'red', lw=2)
-    arrow(l1_pt_x, l1_pt_y, "Lepton 1", 'lightblue')
-    arrow(l2_pt_x, l2_pt_y, "Lepton 2", 'purple')
-    arrow(b1_pt_x, b1_pt_y, "B-jet 1", 'cyan')
-    arrow(b2_pt_x, b2_pt_y, "B-jet 2", 'magenta')
+    arrow(nu1_px, nu1_py, "Neutrino 1", "blue")
+    arrow(nu2_px, nu2_py, "Neutrino 2", "pink")
+    arrow(met_x, met_y, "MET", "red", lw=2)
+    arrow(l1_pt_x, l1_pt_y, "Lepton 1", "lightblue")
+    arrow(l2_pt_x, l2_pt_y, "Lepton 2", "purple")
+    arrow(b1_pt_x, b1_pt_y, "B-jet 1", "cyan")
+    arrow(b2_pt_x, b2_pt_y, "B-jet 2", "magenta")
 
     # Ellipses
     H1 = flat_to_matrix_3x3(H1_flat)
@@ -73,26 +99,41 @@ def plot_event(nu1_px, nu1_py,
 
     if e1 is not None:
         a1, b1_, angle1 = e1
-        ax.add_patch(patches.Ellipse((0, 0), 2*a1, 2*b1_, angle=angle1,
-                                     color='blue', alpha=0.3))
+        ax.add_patch(
+            patches.Ellipse(
+                (0, 0),
+                2 * a1,
+                2 * b1_,
+                angle=angle1,
+                color="blue",
+                alpha=0.3,
+            )
+        )
     if e2 is not None:
         a2, b2_, angle2 = e2
-        ax.add_patch(patches.Ellipse((0, 0), 2*a2, 2*b2_, angle=angle2,
-                                     color='red', alpha=0.3))
+        ax.add_patch(
+            patches.Ellipse(
+                (0, 0),
+                2 * a2,
+                2 * b2_,
+                angle=angle2,
+                color="red",
+                alpha=0.3,
+            )
+        )
 
     # Formatting
-    ax.set_xlabel('pT_x (GeV)')
-    ax.set_ylabel('pT_y (GeV)')
-    ax.set_title(f'Event {event_idx}: Neutrino Solutions and Conic Ellipses')
-    ax.axhline(0, color='black', lw=0.5, ls='--')
-    ax.axvline(0, color='black', lw=0.5, ls='--')
+    ax.set_xlabel("pT_x (GeV)")
+    ax.set_ylabel("pT_y (GeV)")
+    ax.set_title(f"Event {event_idx}: Neutrino Solutions and Conic Ellipses")
+    ax.axhline(0, color="black", lw=0.5, ls="--")
+    ax.axvline(0, color="black", lw=0.5, ls="--")
     ax.legend()
     ax.grid(True)
-    ax.set_aspect('equal')
+    ax.set_aspect("equal")
 
-    outdir = "/afs/cern.ch/user/v/victorr/private/mkShapesRDF/mkShapesRDF/processor/condor/Summer22_130x_nAODv12_Full2022v12/MCl1loose2022v12__fakeSel/TTTo2L2Nu_test/plots"
-    os.makedirs(outdir, exist_ok=True)
-    fig.savefig(f"{outdir}/event_{event_idx}_neutrino_solutions.png")
+    os.makedirs(output_dir, exist_ok=True)
+    fig.savefig(f"{output_dir}/event_{event_idx}_neutrino_solutions.png")
     plt.close(fig)
 
 
@@ -112,15 +153,35 @@ class NuSolutionProducer(Module):
         #include <TVector3.h>
         #include <cmath>
         #include <vector>
+        #include <array>
         #include <algorithm>
         #include <limits>
         #include <iostream>
+        #include <memory>
+        #include <functional>
+        #include <string>
+        #include <cstdlib>
         #include <TMatrixDSymEigen.h>
                                   
 
         namespace nuana {
 
         // ---------- Utilities ----------
+
+        bool debug_enabled() {
+            static const bool enabled = [](){
+                const char* env = std::getenv("NU_DEBUG");
+                return env && std::string(env) != "0";
+            }();
+            return enabled;
+        }
+
+        void debug_log(const std::string& message) {
+            if (debug_enabled()) {
+                std::cout << "[nuana] " << message << std::endl;
+            }
+        }
+
         // UnitCircle: returns a 3x3 matrix representing the unit circle in the F' coordinate system
         TMatrixD UnitCircle() {
             TMatrixD U(3,3);
@@ -129,6 +190,83 @@ class NuSolutionProducer(Module):
             U(1,1) = 1.0;
             U(2,2) = -1.0;
             return U;
+        }
+
+        // Construct a robust 2x2 MET covariance matrix
+        TMatrixD makeMetCov(double cov_xx, double cov_xy, double cov_yy) {
+            TMatrixD sigma2(2, 2);
+            sigma2(0, 0) = cov_xx;
+            sigma2(0, 1) = cov_xy;
+            sigma2(1, 0) = cov_xy;
+            sigma2(1, 1) = cov_yy;
+
+            bool finite = std::isfinite(cov_xx) && std::isfinite(cov_xy) && std::isfinite(cov_yy);
+            double det = sigma2(0, 0) * sigma2(1, 1) - sigma2(0, 1) * sigma2(1, 0);
+            double minDiag = std::min(sigma2(0, 0), sigma2(1, 1));
+
+            if (!finite || minDiag <= 0.0 || det <= 0.0) {
+                sigma2.UnitMatrix();
+            }
+
+            return sigma2;
+        }
+
+        double det3x3(const TMatrixD &M) {
+            if (M.GetNrows() != 3 || M.GetNcols() != 3) {
+                return 0.0;
+            }
+            const double a = M(0,0);
+            const double b = M(0,1);
+            const double c = M(0,2);
+            const double d = M(1,0);
+            const double e = M(1,1);
+            const double f = M(1,2);
+            const double g = M(2,0);
+            const double h = M(2,1);
+            const double i = M(2,2);
+            return a * (e * i - f * h)
+                 - b * (d * i - f * g)
+                 + c * (d * h - e * g);
+        }
+
+        bool invert3x3(const TMatrixD &M, TMatrixD &inv, double tol = 1e-12) {
+            double det = det3x3(M);
+            if (!std::isfinite(det) || std::abs(det) <= tol) {
+                return false;
+            }
+
+            inv.ResizeTo(3, 3);
+
+            inv(0,0) =  (M(1,1) * M(2,2) - M(1,2) * M(2,1)) / det;
+            inv(0,1) = -(M(0,1) * M(2,2) - M(0,2) * M(2,1)) / det;
+            inv(0,2) =  (M(0,1) * M(1,2) - M(0,2) * M(1,1)) / det;
+            inv(1,0) = -(M(1,0) * M(2,2) - M(1,2) * M(2,0)) / det;
+            inv(1,1) =  (M(0,0) * M(2,2) - M(0,2) * M(2,0)) / det;
+            inv(1,2) = -(M(0,0) * M(1,2) - M(0,2) * M(1,0)) / det;
+            inv(2,0) =  (M(1,0) * M(2,1) - M(1,1) * M(2,0)) / det;
+            inv(2,1) = -(M(0,0) * M(2,1) - M(0,1) * M(2,0)) / det;
+            inv(2,2) =  (M(0,0) * M(1,1) - M(0,1) * M(1,0)) / det;
+
+            return true;
+        }
+
+        bool invert2x2(const TMatrixD &M, TMatrixD &inv, double tol = 1e-12) {
+            if (M.GetNrows() != 2 || M.GetNcols() != 2) {
+                return false;
+            }
+
+            double det = M(0,0) * M(1,1) - M(0,1) * M(1,0);
+            if (!std::isfinite(det) || std::abs(det) <= tol) {
+                return false;
+            }
+
+            inv.ResizeTo(2, 2);
+            const double invDet = 1.0 / det;
+            inv(0,0) =  M(1,1) * invDet;
+            inv(0,1) = -M(0,1) * invDet;
+            inv(1,0) = -M(1,0) * invDet;
+            inv(1,1) =  M(0,0) * invDet;
+            return true;
         }
 
         // Cofactor for 3x3 matrix A at (i,j)
@@ -331,8 +469,12 @@ class NuSolutionProducer(Module):
             bool returnLines = false, double zero = 1e-10
         ) {
             // Swap if needed to make |det(A)| >= |det(B)|
-            double detA = A.Determinant();
-            double detB = B.Determinant();
+            double detA = det3x3(A);
+            double detB = det3x3(B);
+            if (!std::isfinite(detA) || !std::isfinite(detB)) {
+                debug_log("intersections_ellipses: non-finite determinant detected.");
+                return {std::vector<TVectorD>{}, std::vector<std::array<double, 3>>{}};
+            }
             const TMatrixD *AA = &A;
             const TMatrixD *BB = &B;
             if (std::abs(detB) > std::abs(detA)) {
@@ -340,9 +482,13 @@ class NuSolutionProducer(Module):
                 BB = &A;
             }
 
-            // Compute inv(A) * B
-            TMatrixD invA(*AA);
-            invA.Invert();
+            double tol = std::max(zero, 1e-15);
+            TMatrixD invA;
+            if (!invert3x3(*AA, invA, tol)) {
+                debug_log("intersections_ellipses: failed to invert ellipse matrix, aborting intersection search.");
+                return {std::vector<TVectorD>{}, std::vector<std::array<double, 3>>{}};
+            }
+
             TMatrixD M = invA * (*BB);
 
             // Eigenvalues (possibly complex)
@@ -382,7 +528,7 @@ class NuSolutionProducer(Module):
                 auto pts = intersections_ellipse_line(*AA, line, zero);
                 points.insert(points.end(), pts.begin(), pts.end());
             }
-            cout << "Found " << points.size() << " intersection points." << std::endl;
+            debug_log("Found " + std::to_string(points.size()) + " intersection points.");
 
             if (returnLines) {
                 return {points, lines};
@@ -394,6 +540,14 @@ class NuSolutionProducer(Module):
         struct nuSolutionSet {
             TLorentzVector b, mu;
             double c, s, x0, x0p, Sx, Sy, w, w_, x1, y1, Z, Om2, eps2, mW2;
+
+            nuSolutionSet()
+                : b(), mu(), c(1.0), s(0.0), x0(0.0), x0p(0.0), Sx(0.0), Sy(0.0), w(0.0), w_(0.0),
+                  x1(0.0), y1(0.0), Z(0.0), Om2(1.0), eps2(0.0), mW2(80.385 * 80.385)
+            {
+                b.SetPxPyPzE(0.0, 0.0, 0.0, 1.0);
+                mu.SetPxPyPzE(0.0, 0.0, 0.0, 1.0);
+            }
 
             nuSolutionSet(const TLorentzVector& b_, const TLorentzVector& mu_,
                   double mW = 80.385, double mT = 172.5, double mN = 0.0)
@@ -541,14 +695,16 @@ class NuSolutionProducer(Module):
 
             // Solution ellipse of pT_nu: lab coord.
             TMatrixD getN() const {
-                // Get the inverse of the H_perp matrix
-                TMatrixD HpInv = getH_perp();
-                //cout << "H_perp inverse: " << std::endl;
-                //HpInv.Print();
-                HpInv.Invert();
-                //cout << "H_perp inverse after Invert: " << std::endl;
-                //HpInv.Print();
-                // Return the transformed ellipse
+                // Invert H_perp safely, falling back to identity if singular
+                TMatrixD Hp = getH_perp();
+                TMatrixD HpInv;
+                if (!invert3x3(Hp, HpInv)) {
+                    debug_log("nuSolutionSet::getN: inversion failed, using identity.");
+                    TMatrixD fallback(3, 3);
+                    fallback.UnitMatrix();
+                    return fallback;
+                }
+
                 return HpInv.T() * UnitCircle() * HpInv;
             }
         };
@@ -557,9 +713,15 @@ class NuSolutionProducer(Module):
         // singleNeutrinoSolution: finds the best single-neutrino solution for given b-jet and lepton momenta.
         class singleNeutrinoSolution {
         public:
-            nuana::nuSolutionSet solutionSet; 
+            nuana::nuSolutionSet solutionSet;
             TMatrixD X;
             std::vector<TVectorD> solutions;
+
+            singleNeutrinoSolution()
+                : solutionSet(), X(3, 3), solutions()
+            {
+                X.Zero();
+            }
 
             singleNeutrinoSolution(const TLorentzVector& b, const TLorentzVector& mu,
                                   double metX, double metY,
@@ -569,7 +731,12 @@ class NuSolutionProducer(Module):
             {
                 // Build S2: inverse of sigma2, padded to 3x3
                 TMatrixD S2(3,3); S2.Zero();
-                TMatrixD sigma2_inv(sigma2); sigma2_inv.Invert();
+                TMatrixD sigma2_inv;
+                if (!invert2x2(sigma2, sigma2_inv)) {
+                    debug_log("singleNeutrinoSolution: MET covariance inversion failed, using identity.");
+                    sigma2_inv.ResizeTo(2,2);
+                    sigma2_inv.UnitMatrix();
+                }
                 for (int i=0;i<2;++i) for (int j=0;j<2;++j)
                     S2(i,j) = sigma2_inv(i,j);
 
@@ -615,31 +782,102 @@ class NuSolutionProducer(Module):
             }
 
             double chi2() const {
-                if (solutions.empty()) return -1.0;
-                return calcX2(solutions[0]);
+                if (solutions.empty()) return invalidValue();
+                double chi2_val = calcX2(solutions[0]);
+                if (!std::isfinite(chi2_val)) return invalidValue();
+                return chi2_val;
+            }
+
+            bool hasSolutions() const {
+                return !solutions.empty();
+            }
+
+            bool isValid() const {
+                const auto& nu_vec = bestNu();
+                return std::isfinite(nu_vec(0)) && std::isfinite(nu_vec(1)) && std::isfinite(nu_vec(2));
             }
 
             TVectorD nu() const {
-                if (solutions.empty()) return TVectorD(3);
-                return solutionSet.getH() * solutions[0];
+                return bestNu();
+            }
+
+            double nu_px() const { return bestNu()(0); }
+            double nu_py() const { return bestNu()(1); }
+            double nu_pz() const { return bestNu()(2); }
+
+            double nu_pt() const {
+                const auto& nu_vec = bestNu();
+                if (!std::isfinite(nu_vec(0)) || !std::isfinite(nu_vec(1))) return invalidValue();
+                return std::hypot(nu_vec(0), nu_vec(1));
+            }
+
+            double nu_phi() const {
+                const auto& nu_vec = bestNu();
+                if (!std::isfinite(nu_vec(0)) || !std::isfinite(nu_vec(1))) return invalidValue();
+                return std::atan2(nu_vec(1), nu_vec(0));
+            }
+
+            double nu_energy() const {
+                const auto& nu_vec = bestNu();
+                if (!std::isfinite(nu_vec(0)) || !std::isfinite(nu_vec(1)) || !std::isfinite(nu_vec(2))) return invalidValue();
+                double pt = std::hypot(nu_vec(0), nu_vec(1));
+                return std::sqrt(pt * pt + nu_vec(2) * nu_vec(2));
+            }
+
+        private:
+            mutable TVectorD cachedNu_;
+            mutable bool cachedReady_ = false;
+
+            static double invalidValue() {
+                return std::numeric_limits<double>::quiet_NaN();
+            }
+
+            void fillInvalid() const {
+                cachedNu_.ResizeTo(3);
+                double nan = invalidValue();
+                for (int i = 0; i < 3; ++i) {
+                    cachedNu_(i) = nan;
+                }
+            }
+
+            const TVectorD& bestNu() const {
+                if (!cachedReady_) {
+                    if (solutions.empty()) {
+                        fillInvalid();
+                    } else {
+                        cachedNu_ = solutionSet.getH() * solutions[0];
+                        bool finite = true;
+                        for (int i = 0; i < 3; ++i) {
+                            if (!std::isfinite(cachedNu_(i))) {
+                                finite = false;
+                                break;
+                            }
+                        }
+                        if (!finite) {
+                            fillInvalid();
+                        }
+                    }
+                    cachedReady_ = true;
+                }
+                return cachedNu_;
             }
         };
                                   
 
         // doubleNeutrinoSolution: finds the best double-neutrino solution for given b-jet and lepton momenta.
         class doubleNeutrinoSolution {
-        private:
-            TMatrixD H1, H2; // store the ellipse matrices
         public:
             struct NuPair {
                 std::array<double, 2> first;
                 std::array<double, 2> second;
             };
 
-            std::vector<NuPair> nunu_s;
-
-            // default constructor
-            doubleNeutrinoSolution() = default;
+            doubleNeutrinoSolution()
+                : H1(3, 3), H2(3, 3)
+            {
+                H1.Zero();
+                H2.Zero();
+            }
 
             doubleNeutrinoSolution(
                 const TLorentzVector& b1,
@@ -649,122 +887,93 @@ class NuSolutionProducer(Module):
                 double met_x,
                 double met_y)
             {
-                double mW = 80.385; // W mass in GeV
-                double mT = 172.5;  // Top mass in GeV
+                const double mW = 80.385; // W mass in GeV
+                const double mT = 172.5;  // Top mass in GeV
 
-                // Try both pairings: (b1,l1)+(b2,l2) and (b1,l2)+(b2,l1)
                 auto try_pairing = [&](const TLorentzVector& B1, const TLorentzVector& B2,
-                                    const TLorentzVector& L1, const TLorentzVector& L2) {
-                    std::vector<NuPair> solutions;
+                                       const TLorentzVector& L1, const TLorentzVector& L2) {
+                    PairingResult result;
 
-                    // Build solution sets
                     nuana::nuSolutionSet ss1(B1, L1, mW, mT);
                     nuana::nuSolutionSet ss2(B2, L2, mW, mT);
 
-                    // Build the S matrix
+                    TMatrixD H1tmp = ss1.getH();
+                    TMatrixD H2tmp = ss2.getH();
+                    result.H1.ResizeTo(H1tmp.GetNrows(), H1tmp.GetNcols());
+                    result.H2.ResizeTo(H2tmp.GetNrows(), H2tmp.GetNcols());
+                    result.H1 = H1tmp;
+                    result.H2 = H2tmp;
+
                     TMatrixD V0(3, 3);
                     V0.Zero();
                     V0(0, 2) = met_x;
                     V0(1, 2) = met_y;
                     V0(2, 2) = 0.0;
 
-                    // S = V0 - UnitCircle();
                     TMatrixD S = V0 - UnitCircle();
-                    
-                    // Save ellipses for plotting
-                    H1 = ss1.getH();
-                    H2 = ss2.getH();
 
-                    // Get solution ellipses
                     TMatrixD N1 = ss1.getN();
                     TMatrixD N2 = ss2.getN();
 
-                    // Rotate N2 to frame of N1
                     TMatrixD n2 = S.T() * N2 * S;
 
+                    std::vector<TVectorD> intersections =
+                        nuana::intersections_ellipses(N1, n2).first;
 
-                    // Find intersection points
-                    std::vector<TVectorD> v = nuana::intersections_ellipses(N1, n2).first;
-
-                    for (const auto& sol : v) {
-                        // Neutrino 1
+                    for (const auto& sol : intersections) {
                         TVectorD nu1 = ss1.getH() * sol;
-                        // Neutrino 2
                         TVectorD nu2 = S * sol;
-
-                        //cout << "Neutrino 1: " << nu1(0) << ", " << nu1(1) << std::endl;
-                        //cout << "Neutrino 2: " << nu2(0) << ", " << nu2(1) << std::endl;
 
                         NuPair pair;
                         pair.first = {nu1(0), nu1(1)};
                         pair.second = {nu2(0), nu2(1)};
-                        // Check if both neutrinos are valid (not NaN)
-                        if (std::isfinite(pair.first[0]) && std::isfinite(pair.first[1]) &&
-                            std::isfinite(pair.second[0]) && std::isfinite(pair.second[1])) {
-                            //cout << "Valid solution: " << pair.first[0] << ", " << pair.first[1] << " | "
-                            //     << pair.second[0] << ", " << pair.second[1] << std::endl;
-                            //    solutions.push_back(pair);
-                        } else {
-                            //cout << "Invalid solution: " << pair.first[0] << ", " << pair.first[1] << " | "
-                            //     << pair.second[0] << ", " << pair.second[1] << std::endl;
+
+                        if (isFinitePair(pair)) {
+                            result.solutions.push_back(pair);
                         }
                     }
 
-                    // If no solutions or only one, use fallback
-                    if (solutions.empty() || solutions.size() < 2) {
-                        solutions.clear();
-                        cout << "No valid solutions found, trying fallback method." << std::endl;
-
+                    if (result.solutions.empty()) {
                         TMatrixD es1 = ss1.getH_perp();
                         TMatrixD es2 = ss2.getH_perp();
-                        TVectorD met(3);
-                        met(0) = met_x;
-                        met(1) = met_y;
-                        met(2) = 1.0;
 
-                        // Function to compute neutrino momenta (3D vector each)
+                        TVectorD met_vec(3);
+                        met_vec(0) = met_x;
+                        met_vec(1) = met_y;
+                        met_vec(2) = 1.0;
+
                         auto nus = [&](const TVectorD& ts) {
-                            std::vector<TVectorD> result;
+                            std::vector<TVectorD> momenta;
+                            momenta.reserve(2);
                             for (int i = 0; i < 2; ++i) {
-                                double t = ts(i);
                                 TVectorD vec(3);
-                                vec(0) = std::cos(t);
-                                vec(1) = std::sin(t);
+                                vec(0) = std::cos(ts(i));
+                                vec(1) = std::sin(ts(i));
                                 vec(2) = 1.0;
 
-                                TVectorD nu(3);
-                                if (i == 0) nu = es1 * vec;
-                                else        nu = es2 * vec;
-
-                                result.push_back(nu);
+                                TVectorD nu = (i == 0) ? es1 * vec : es2 * vec;
+                                momenta.push_back(nu);
                             }
-                            return result;
+                            return momenta;
                         };
 
-                        // Residuals: px, py only
                         auto residuals = [&](const TVectorD& params) {
                             auto nu_vecs = nus(params);
-                            TVectorD total = nu_vecs[0] + nu_vecs[1] - met;
-
+                            TVectorD total = nu_vecs[0] + nu_vecs[1] - met_vec;
                             TVectorD res(2);
                             res(0) = total(0);
                             res(1) = total(1);
                             return res;
                         };
 
-                        // Minimizer
-                        ROOT::Math::Minimizer* min =
-                            ROOT::Math::Factory::CreateMinimizer("Minuit2", "Migrad");
-                        min->SetTolerance(1e-10);
-                        min->SetPrecision(1e-12); 
-                        min->SetVariableStepSize(0, 0.01);
-                        min->SetVariableStepSize(1, 0.01);
-
-                        // Wrapper class
                         class ResidualsFunction : public ROOT::Math::IMultiGenFunction {
                         public:
-                            ResidualsFunction(const std::function<TVectorD(const TVectorD&)>& f) : func(f) {}
+                            explicit ResidualsFunction(
+                                const std::function<TVectorD(const TVectorD&)>& f)
+                                : func(f) {}
+
                             unsigned int NDim() const override { return 2; }
+
                             double DoEval(const double* x) const override {
                                 TVectorD params(2);
                                 params(0) = x[0];
@@ -772,62 +981,144 @@ class NuSolutionProducer(Module):
                                 TVectorD res = func(params);
                                 return res(0) * res(0) + res(1) * res(1);
                             }
+
                             ROOT::Math::IMultiGenFunction* Clone() const override {
                                 return new ResidualsFunction(func);
                             }
+
                         private:
                             std::function<TVectorD(const TVectorD&)> func;
                         };
 
-                        ResidualsFunction residualsFunc(residuals);
-                        min->SetFunction(residualsFunc);
+                        std::unique_ptr<ROOT::Math::Minimizer> min(
+                            ROOT::Math::Factory::CreateMinimizer("Minuit2", "Migrad"));
 
-                        min->SetVariable(0, "t1", 0.0, 0.1);
-                        min->SetVariable(1, "t2", 0.0, 0.1);
+                        if (min) {
+                            min->SetTolerance(1e-10);
+                            min->SetPrecision(1e-12);
+                            min->SetVariableStepSize(0, 0.01);
+                            min->SetVariableStepSize(1, 0.01);
 
-                        min->Minimize();
+                            ResidualsFunction residualsFunc(residuals);
+                            min->SetFunction(residualsFunc);
 
-                        TVectorD ts(2);
-                        ts(0) = min->X()[0];
-                        ts(1) = min->X()[1];
+                            min->SetVariable(0, "t1", 0.0, 0.1);
+                            min->SetVariable(1, "t2", 0.0, 0.1);
 
-                        auto v = nus(ts);
+                            if (min->Minimize()) {
+                                TVectorD ts(2);
+                                ts(0) = min->X()[0];
+                                ts(1) = min->X()[1];
 
-                        NuPair pair;
-                        pair.first = {v[0](0), v[0](1)};
-                        pair.second = {v[1](0), v[1](1)};
-                        solutions.push_back(pair);
+                                auto fallbackSolutions = nus(ts);
+
+                                NuPair pair;
+                                pair.first = {fallbackSolutions[0](0), fallbackSolutions[0](1)};
+                                pair.second = {fallbackSolutions[1](0), fallbackSolutions[1](1)};
+                                result.solutions.push_back(pair);
+                            }
+                        }
                     }
 
-                    return solutions;
+                    return result;
                 };
 
-                // Try both pairings and pick the one with smaller MET residual
-                auto sol1 = try_pairing(b1, b2, l1, l2);
-                auto sol2 = try_pairing(b1, b2, l2, l1);
+                PairingResult pairing1 = try_pairing(b1, b2, l1, l2);
+                PairingResult pairing2 = try_pairing(b1, b2, l2, l1);
 
-                auto met_residual = [&](const std::vector<NuPair>& sols) {
-                    if (sols.empty()) return 1e9;
-                    double sumx = sols[0].first[0] + sols[0].second[0];
-                    double sumy = sols[0].first[1] + sols[0].second[1];
-                    return std::hypot(sumx - met_x, sumy - met_y);
-                };
+                if (metResidual(pairing1, met_x, met_y) <=
+                    metResidual(pairing2, met_x, met_y)) {
+                    nunu_s = pairing1.solutions;
+                    H1.ResizeTo(pairing1.H1.GetNrows(), pairing1.H1.GetNcols());
+                    H2.ResizeTo(pairing1.H2.GetNrows(), pairing1.H2.GetNcols());
+                    H1 = pairing1.H1;
+                    H2 = pairing1.H2;
+                } else {
+                    nunu_s = pairing2.solutions;
+                    H1.ResizeTo(pairing2.H1.GetNrows(), pairing2.H1.GetNcols());
+                    H2.ResizeTo(pairing2.H2.GetNrows(), pairing2.H2.GetNcols());
+                    H1 = pairing2.H1;
+                    H2 = pairing2.H2;
+                }
 
-                //cout << "MET residuals: " << met_residual(sol1) << ", " << met_residual(sol2) << std::endl;
-                if (met_residual(sol1) <= met_residual(sol2))
-                    nunu_s = sol1;
-                else
-                    nunu_s = sol2;
+                if (nunu_s.empty()) {
+                    NuPair empty_pair{{std::numeric_limits<double>::quiet_NaN(),
+                                       std::numeric_limits<double>::quiet_NaN()},
+                                      {std::numeric_limits<double>::quiet_NaN(),
+                                       std::numeric_limits<double>::quiet_NaN()}};
+                    nunu_s.push_back(empty_pair);
+                }
             }
 
             std::vector<NuPair> get_nunu_s() const {
-                cout << "Best solution: " << (nunu_s.empty() ? "None" : std::to_string(nunu_s[0].first[0]) + ", " + std::to_string(nunu_s[0].first[1]) + " | " + std::to_string(nunu_s[0].second[0]) + ", " + std::to_string(nunu_s[0].second[1])) << std::endl;
                 return nunu_s;
             }
-            
-            // --- NEW accessors for ellipse matrices ---
+
             const TMatrixD& getH1() const { return H1; }
             const TMatrixD& getH2() const { return H2; }
+
+            size_t numSolutions() const { return nunu_s.size(); }
+
+            bool isValid(size_t idx = 0) const {
+                return idx < nunu_s.size() && isFinitePair(nunu_s[idx]);
+            }
+
+            bool hasValidSolution() const { return isValid(); }
+
+            double nu1_px(size_t idx = 0) const {
+                return idx < nunu_s.size() ? nunu_s[idx].first[0]
+                                           : std::numeric_limits<double>::quiet_NaN();
+            }
+
+            double nu1_py(size_t idx = 0) const {
+                return idx < nunu_s.size() ? nunu_s[idx].first[1]
+                                           : std::numeric_limits<double>::quiet_NaN();
+            }
+
+            double nu2_px(size_t idx = 0) const {
+                return idx < nunu_s.size() ? nunu_s[idx].second[0]
+                                           : std::numeric_limits<double>::quiet_NaN();
+            }
+
+            double nu2_py(size_t idx = 0) const {
+                return idx < nunu_s.size() ? nunu_s[idx].second[1]
+                                           : std::numeric_limits<double>::quiet_NaN();
+            }
+
+        private:
+            TMatrixD H1, H2; // store the ellipse matrices of the selected pairing
+
+            struct PairingResult {
+                std::vector<NuPair> solutions;
+                TMatrixD H1;
+                TMatrixD H2;
+
+                PairingResult()
+                    : solutions(), H1(3, 3), H2(3, 3)
+                {
+                    H1.Zero();
+                    H2.Zero();
+                }
+            };
+
+            static bool isFinitePair(const NuPair& pair) {
+                return std::isfinite(pair.first[0]) &&
+                       std::isfinite(pair.first[1]) &&
+                       std::isfinite(pair.second[0]) &&
+                       std::isfinite(pair.second[1]);
+            }
+
+            static double metResidual(const PairingResult& res, double met_x, double met_y) {
+                if (res.solutions.empty()) {
+                    return std::numeric_limits<double>::infinity();
+                }
+                const auto& best = res.solutions.front();
+                double sumx = best.first[0] + best.second[0];
+                double sumy = best.first[1] + best.second[1];
+                return std::hypot(sumx - met_x, sumy - met_y);
+            }
+
+            std::vector<NuPair> nunu_s;
         };
         } // namespace nuana
        
@@ -835,6 +1126,7 @@ class NuSolutionProducer(Module):
         using nuana::nuSolutionSet;
         using nuana::singleNeutrinoSolution;
         using nuana::doubleNeutrinoSolution;
+        using nuana::makeMetCov;
         
         """)
 
@@ -856,13 +1148,23 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
 
 
         df = df.Define("bjet_indices", "get_bjet_indices(Jet_btagDeepFlavB, CleanJet_eta, CleanJet_pt, CleanJet_jetIdx)")
-        df = df.Filter("bjet_indices.size() >= 2 & (nMuon + nElectron) >= 2")
+        df = df.Filter("bjet_indices.size() >= 2 && (nMuon + nElectron) >= 2")
         df = df.Define("b1", "TLorentzVector b1; b1.SetPtEtaPhiM(CleanJet_pt[bjet_indices[0]], CleanJet_eta[bjet_indices[0]], CleanJet_phi[bjet_indices[0]], CleanJet_mass[bjet_indices[0]]); return b1;")
         df = df.Define("b2", "TLorentzVector b2; b2.SetPtEtaPhiM(CleanJet_pt[bjet_indices[1]], CleanJet_eta[bjet_indices[1]], CleanJet_phi[bjet_indices[1]], CleanJet_mass[bjet_indices[1]]); return b2;")
         df = df.Define("l1", "TLorentzVector l1; l1.SetPtEtaPhiM(Lepton_pt[0], Lepton_eta[0], Lepton_phi[0], 0.0); return l1;")
         df = df.Define("l2", "TLorentzVector l2; l2.SetPtEtaPhiM(Lepton_pt[1], Lepton_eta[1], Lepton_phi[1], 0.0); return l2;")
         df = df.Define("met_x", "PuppiMET_pt * TMath::Cos(PuppiMET_phi)")
         df = df.Define("met_y", "PuppiMET_pt * TMath::Sin(PuppiMET_phi)")
+
+        covariance_sources = [
+            ("PuppiMET_covXX", "PuppiMET_covXY", "PuppiMET_covYY"),
+            ("MET_covXX", "MET_covXY", "MET_covYY"),
+        ]
+        cov_expr = "makeMetCov(1.0, 0.0, 1.0)"
+        for cov_xx, cov_xy, cov_yy in covariance_sources:
+            if all(df.df.HasColumn(col) for col in (cov_xx, cov_xy, cov_yy)):
+                cov_expr = f"makeMetCov({cov_xx}, {cov_xy}, {cov_yy})"
+                break
        
         # Define leptons momenta in x and y
         df = df.Define("l1_pt_x", "l1.Px()")
@@ -880,17 +1182,49 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
         df = df.Define("b2_phi",  "b2.Phi()")
 
 
+        # Build single-neutrino solutions for all b/lepton pairings
+        single_pairs = [
+            ("b1l1", "b1", "l1"),
+            ("b1l2", "b1", "l2"),
+            ("b2l1", "b2", "l1"),
+            ("b2l2", "b2", "l2"),
+        ]
+
+        for suffix, b_name, l_name in single_pairs:
+            sn_name = f"snsol_{suffix}"
+            df = df.Define(sn_name, f"singleNeutrinoSolution({b_name}, {l_name}, met_x, met_y, {cov_expr})")
+            df = df.Define(f"singleNu_{suffix}_valid", f"{sn_name}.isValid()")
+            df = df.Define(f"singleNu_{suffix}_chi2", f"{sn_name}.chi2()")
+            df = df.Define(f"singleNu_{suffix}_px", f"{sn_name}.nu_px()")
+            df = df.Define(f"singleNu_{suffix}_py", f"{sn_name}.nu_py()")
+            df = df.Define(f"singleNu_{suffix}_pz", f"{sn_name}.nu_pz()")
+            df = df.Define(f"singleNu_{suffix}_pt", f"{sn_name}.nu_pt()")
+            df = df.Define(f"singleNu_{suffix}_phi", f"{sn_name}.nu_phi()")
+            df = df.Define(f"singleNu_{suffix}_energy", f"{sn_name}.nu_energy()")
+
         # Build double-neutrino solutions
         df = df.Define("dnsol", "doubleNeutrinoSolution(b1, b2, l1, l2, met_x, met_y)")
- 
-        df = df.Define("H1_flat", "std::vector<double>(dnsol.getH1().GetMatrixArray(), dnsol.getH1().GetMatrixArray() + 9)")
-        df = df.Define("H2_flat", "std::vector<double>(dnsol.getH2().GetMatrixArray(), dnsol.getH2().GetMatrixArray() + 9)")
 
-        # Extract the first MET-conserving neutrino pair
-        df = df.Define("nu1_px", "dnsol.get_nunu_s().at(0).first[0]")
-        df = df.Define("nu1_py", "dnsol.get_nunu_s().at(0).first[1]")
-        df = df.Define("nu2_px", "dnsol.get_nunu_s().at(0).second[0]")
-        df = df.Define("nu2_py", "dnsol.get_nunu_s().at(0).second[1]")
+        df = df.Define(
+            "H1_flat",
+            "std::vector<double>(dnsol.getH1().GetMatrixArray(), dnsol.getH1().GetMatrixArray() + 9)",
+        )
+        df = df.Define(
+            "H2_flat",
+            "std::vector<double>(dnsol.getH2().GetMatrixArray(), dnsol.getH2().GetMatrixArray() + 9)",
+        )
+
+        df = df.Define("nu1_px", "dnsol.nu1_px()")
+        df = df.Define("nu1_py", "dnsol.nu1_py()")
+        df = df.Define("nu2_px", "dnsol.nu2_px()")
+        df = df.Define("nu2_py", "dnsol.nu2_py()")
+
+        df = df.Define("ttbarReco_success", "dnsol.hasValidSolution()")
+
+        df = df.Define(
+            "has_valid_nunu",
+            "dnsol.hasValidSolution()",
+        )
 
         # Reconstruct tops
         df = df.Define("top1", "TLorentzVector top1(nu1_px, nu1_py, 0, sqrt(nu1_px*nu1_px + nu1_py*nu1_py)); top1 += b1; top1 += l1; return top1;")
@@ -911,8 +1245,9 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
 
         # Drop intermediate helper columns to keep the dataframe clean
         columns_to_drop = [
-            "bjet_indices", 
+            "bjet_indices",
             "l1", "l2", "b1", "b2",
+            "snsol_b1l1", "snsol_b1l2", "snsol_b2l1", "snsol_b2l2",
             "dnsol",
             "top1", "top2", "l1_top_rf", "l2_top_rf",
             ]
@@ -938,10 +1273,18 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
         n_events = len(data_cache[plot_columns_float[0]])
 
         for i in range(n_events):
-           plot_args = [data_cache[col][i] for col in plot_columns_float]
-           plot_args += [data_cache[col][i] for col in plot_columns_vector]  # each is already vector<double>
-           plot_args.append(i)
-           plot_event(*plot_args) 
+            if not (
+                math.isfinite(data_cache["nu1_px"][i])
+                and math.isfinite(data_cache["nu1_py"][i])
+                and math.isfinite(data_cache["nu2_px"][i])
+                and math.isfinite(data_cache["nu2_py"][i])
+            ):
+                continue
+
+            plot_args = [data_cache[col][i] for col in plot_columns_float]
+            plot_args += [data_cache[col][i] for col in plot_columns_vector]  # each is already vector<double>
+            plot_args.append(i)
+            plot_event(*plot_args)
         
         # Return the final dataframe or continue processing
         return df

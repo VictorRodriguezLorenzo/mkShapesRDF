@@ -188,6 +188,7 @@ def plot_event(
     H2_flat,
     N1_flat,
     N2_flat,
+    N2_nubar_flat,
     nunu_solutions_flat,
     event_idx,
     output_dir: Optional[str] = None,
@@ -229,7 +230,8 @@ def plot_event(
     H1 = matrix_from_flat(H1_flat)
     H2 = matrix_from_flat(H2_flat)
     N1 = matrix_from_flat(N1_flat)
-    N2 = matrix_from_flat(N2_flat)
+    N2_constraint = matrix_from_flat(N2_flat)
+    N2_nubar = matrix_from_flat(N2_nubar_flat)
 
     def draw_conic(matrix, label, color, transform=None, plot_kwargs=None, fallback=None):
         pts = sample_ellipse_points(matrix, fallback_matrix=fallback)
@@ -249,15 +251,15 @@ def plot_event(
         extents_y.extend(np.abs(pts[:, 1]))
 
     draw_conic(N1, "N₁ ellipse", "navy", fallback=H1)
-    draw_conic(N2, "N₂ ellipse", "darkorange", fallback=H2)
-    draw_conic(
-        N2,
-        "Constraint ellipse",
-        "darkorange",
-        transform=lambda xy: np.array([met_x - xy[0], met_y - xy[1]]),
-        plot_kwargs={"linestyle": "--", "alpha": 0.9},
-        fallback=H2,
-    )
+    if N2_nubar is not None:
+        draw_conic(N2_nubar, "ν̄ ellipse", "darkorange", fallback=H2)
+    if N2_constraint is not None:
+        draw_conic(
+            N2_constraint,
+            "Constraint from ν̄",
+            "black",
+            plot_kwargs={"linestyle": "--", "alpha": 0.9},
+        )
 
     # Formatting
     ax.set_xlabel("pT_x (GeV)")
@@ -288,7 +290,8 @@ def plot_event(
         met_x,
         met_y,
         N1,
-        N2,
+        N2_constraint,
+        N2_nubar,
         H1,
         H2,
         nunu_solutions_flat,
@@ -305,7 +308,8 @@ def plot_ttbar_system(
     met_x,
     met_y,
     N1_matrix,
-    N2_matrix,
+    N2_constraint_matrix,
+    N2_nubar_matrix,
     H1_matrix,
     H2_matrix,
     nunu_solutions_flat,
@@ -329,29 +333,23 @@ def plot_ttbar_system(
         extents_x.extend(np.abs(nu_pts[:, 0]))
         extents_y.extend(np.abs(nu_pts[:, 1]))
 
-    nubar_pts = sample_ellipse_points(N2_matrix, fallback_matrix=H2_matrix)
-    constraint_pts = None
-    constraint_nubar_pts = None
+    nubar_pts = sample_ellipse_points(N2_nubar_matrix, fallback_matrix=H2_matrix)
+    constraint_pts = sample_ellipse_points(N2_constraint_matrix)
     if nubar_pts is not None and len(nubar_pts) > 0:
         ax.plot(nubar_pts[:, 0], nubar_pts[:, 1], color="dimgray", alpha=0.9, label="\u03bd̄ ellipse")
         extents_x.extend(np.abs(nubar_pts[:, 0]))
         extents_y.extend(np.abs(nubar_pts[:, 1]))
-
-        transformed = np.column_stack((met_x - nubar_pts[:, 0], met_y - nubar_pts[:, 1]))
-        mask = np.all(np.isfinite(transformed), axis=1)
-        if np.any(mask):
-            constraint_pts = transformed[mask]
-            constraint_nubar_pts = nubar_pts[mask]
-            ax.plot(
-                constraint_pts[:, 0],
-                constraint_pts[:, 1],
-                color="black",
-                linestyle="--",
-                alpha=0.9,
-                label="Constraint from \u03bd̄",
-            )
-            extents_x.extend(np.abs(constraint_pts[:, 0]))
-            extents_y.extend(np.abs(constraint_pts[:, 1]))
+    if constraint_pts is not None and len(constraint_pts) > 0:
+        ax.plot(
+            constraint_pts[:, 0],
+            constraint_pts[:, 1],
+            color="black",
+            linestyle="--",
+            alpha=0.9,
+            label="Constraint from \u03bd̄",
+        )
+        extents_x.extend(np.abs(constraint_pts[:, 0]))
+        extents_y.extend(np.abs(constraint_pts[:, 1]))
 
     # Momentum arrows
     ax.arrow(0, 0, nu1_px, nu1_py, color="black", head_width=2.0, length_includes_head=True, alpha=0.8)
@@ -427,9 +425,6 @@ def plot_ttbar_system(
         if i is not None and j is not None:
             best_nu = nu_pts[i]
             best_constraint = constraint_pts[j]
-            best_nubar = None
-            if constraint_nubar_pts is not None and len(constraint_nubar_pts) > j:
-                best_nubar = constraint_nubar_pts[j]
 
             marker = marker_cycle[0]
             ax.scatter(
@@ -440,15 +435,6 @@ def plot_ttbar_system(
                 s=90,
                 label="Closest ν",
             )
-            if best_nubar is not None:
-                ax.scatter(
-                    [best_nubar[0]],
-                    [best_nubar[1]],
-                    marker=marker,
-                    color="gray",
-                    s=90,
-                    label="Closest \u03bd̄",
-                )
             ax.scatter(
                 [best_constraint[0]],
                 [best_constraint[1]],
@@ -469,12 +455,8 @@ def plot_ttbar_system(
                 label="Closest separation",
             )
 
-            extents_x.extend(
-                [abs(best_nu[0]), abs(best_constraint[0])] + ([abs(best_nubar[0])] if best_nubar is not None else [])
-            )
-            extents_y.extend(
-                [abs(best_nu[1]), abs(best_constraint[1])] + ([abs(best_nubar[1])] if best_nubar is not None else [])
-            )
+            extents_x.extend([abs(best_nu[0]), abs(best_constraint[0])])
+            extents_y.extend([abs(best_nu[1]), abs(best_constraint[1])])
 
     ax.set_xlabel("pT_x (GeV)")
     ax.set_ylabel("pT_y (GeV)")
@@ -1366,12 +1348,13 @@ class NuSolutionProducer(Module):
             };
 
             doubleNeutrinoSolution()
-                : H1(3, 3), H2(3, 3), N1_(3, 3), N2_(3, 3), usedMinimizerFallback_(false)
+                : H1(3, 3), H2(3, 3), N1_(3, 3), N2_constraint_(3, 3), N2_nubar_(3, 3), usedMinimizerFallback_(false)
             {
                 H1.Zero();
                 H2.Zero();
                 N1_.Zero();
-                N2_.Zero();
+                N2_constraint_.Zero();
+                N2_nubar_.Zero();
             }
 
             doubleNeutrinoSolution(
@@ -1423,9 +1406,11 @@ class NuSolutionProducer(Module):
                     TMatrixD n2 = ST * N2 * S;
 
                     result.N1.ResizeTo(N1.GetNrows(), N1.GetNcols());
-                    result.N2.ResizeTo(n2.GetNrows(), n2.GetNcols());
+                    result.N2_constraint.ResizeTo(n2.GetNrows(), n2.GetNcols());
+                    result.N2_nubar.ResizeTo(N2.GetNrows(), N2.GetNcols());
                     result.N1 = N1;
-                    result.N2 = n2;
+                    result.N2_constraint = n2;
+                    result.N2_nubar = N2;
 
                     std::vector<TVectorD> intersections =
                         nuana::intersections_ellipses(N1, n2).first;
@@ -1619,9 +1604,11 @@ class NuSolutionProducer(Module):
                     H1 = pairing1.H1;
                     H2 = pairing1.H2;
                     N1_.ResizeTo(pairing1.N1.GetNrows(), pairing1.N1.GetNcols());
-                    N2_.ResizeTo(pairing1.N2.GetNrows(), pairing1.N2.GetNcols());
+                    N2_constraint_.ResizeTo(pairing1.N2_constraint.GetNrows(), pairing1.N2_constraint.GetNcols());
+                    N2_nubar_.ResizeTo(pairing1.N2_nubar.GetNrows(), pairing1.N2_nubar.GetNcols());
                     N1_ = pairing1.N1;
-                    N2_ = pairing1.N2;
+                    N2_constraint_ = pairing1.N2_constraint;
+                    N2_nubar_ = pairing1.N2_nubar;
                     usedMinimizerFallback_ = pairing1.usedMinimizerFallback;
                     if (debug_enabled()) {
                         debug_log("doubleNeutrinoSolution: selected pairing1 with " +
@@ -1634,9 +1621,11 @@ class NuSolutionProducer(Module):
                     H1 = pairing2.H1;
                     H2 = pairing2.H2;
                     N1_.ResizeTo(pairing2.N1.GetNrows(), pairing2.N1.GetNcols());
-                    N2_.ResizeTo(pairing2.N2.GetNrows(), pairing2.N2.GetNcols());
+                    N2_constraint_.ResizeTo(pairing2.N2_constraint.GetNrows(), pairing2.N2_constraint.GetNcols());
+                    N2_nubar_.ResizeTo(pairing2.N2_nubar.GetNrows(), pairing2.N2_nubar.GetNcols());
                     N1_ = pairing2.N1;
-                    N2_ = pairing2.N2;
+                    N2_constraint_ = pairing2.N2_constraint;
+                    N2_nubar_ = pairing2.N2_nubar;
                     usedMinimizerFallback_ = pairing2.usedMinimizerFallback;
                     if (debug_enabled()) {
                         debug_log("doubleNeutrinoSolution: selected pairing2 with " +
@@ -1661,7 +1650,9 @@ class NuSolutionProducer(Module):
             const TMatrixD& getH1() const { return H1; }
             const TMatrixD& getH2() const { return H2; }
             const TMatrixD& getN1() const { return N1_; }
-            const TMatrixD& getN2() const { return N2_; }
+            const TMatrixD& getN2() const { return N2_constraint_; }
+            const TMatrixD& getN2Constraint() const { return N2_constraint_; }
+            const TMatrixD& getN2NuBar() const { return N2_nubar_; }
 
             size_t numSolutions() const { return nunu_s.size(); }
 
@@ -1708,7 +1699,8 @@ class NuSolutionProducer(Module):
         private:
             TMatrixD H1, H2; // store the ellipse matrices of the selected pairing
             TMatrixD N1_;
-            TMatrixD N2_;
+            TMatrixD N2_constraint_;
+            TMatrixD N2_nubar_;
             bool usedMinimizerFallback_ = false;
 
             struct PairingResult {
@@ -1716,16 +1708,19 @@ class NuSolutionProducer(Module):
                 TMatrixD H1;
                 TMatrixD H2;
                 TMatrixD N1;
-                TMatrixD N2;
+                TMatrixD N2_constraint;
+                TMatrixD N2_nubar;
                 bool usedMinimizerFallback;
 
                 PairingResult()
-                    : solutions(), H1(3, 3), H2(3, 3), N1(3, 3), N2(3, 3), usedMinimizerFallback(false)
+                    : solutions(), H1(3, 3), H2(3, 3), N1(3, 3), N2_constraint(3, 3), N2_nubar(3, 3),
+                      usedMinimizerFallback(false)
                 {
                     H1.Zero();
                     H2.Zero();
                     N1.Zero();
-                    N2.Zero();
+                    N2_constraint.Zero();
+                    N2_nubar.Zero();
                 }
             };
 
@@ -1925,6 +1920,11 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
             "pass_bjets ? std::vector<double>(dnsol.getN2().GetMatrixArray(), dnsol.getN2().GetMatrixArray() + 9) : std::vector<double>(9, -9999.0)",
         )
 
+        df = df.Define(
+            "N2_nubar_flat",
+            "pass_bjets ? std::vector<double>(dnsol.getN2NuBar().GetMatrixArray(), dnsol.getN2NuBar().GetMatrixArray() + 9) : std::vector<double>(9, -9999.0)",
+        )
+
         df = df.Define("nu1_px", "pass_bjets ? dnsol.nu1_px() : -9999.0")
         df = df.Define("nu1_py", "pass_bjets ? dnsol.nu1_py() : -9999.0")
         df = df.Define("nu2_px", "pass_bjets ? dnsol.nu2_px() : -9999.0")
@@ -1999,7 +1999,7 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
 
         plot_columns_float = [ "nu1_px", "nu1_py", "nu2_px", "nu2_py", "met_x", "met_y", "l1_pt_x", "l1_pt_y", "l2_pt_x", "l2_pt_y", "b1_pt_x", "b1_pt_y", "b2_pt_x", "b2_pt_y" ]
 
-        plot_columns_vector = ["H1_flat", "H2_flat", "N1_flat", "N2_flat", "nunu_solutions_flat"]
+        plot_columns_vector = ["H1_flat", "H2_flat", "N1_flat", "N2_flat", "N2_nubar_flat", "nunu_solutions_flat"]
 
         data_cache = {}
 
@@ -2031,7 +2031,7 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
             plot_args.append(i)
             plot_event(*plot_args)
 
-        for col in ("H1_flat", "H2_flat", "N1_flat", "N2_flat", "nunu_solutions_flat"):
+        for col in ("H1_flat", "H2_flat", "N1_flat", "N2_flat", "N2_nubar_flat", "nunu_solutions_flat"):
             df = df.DropColumns(col)
 
         # Return the final dataframe or continue processing

@@ -1099,7 +1099,7 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
         )
         df = df.Define(
             "pass_bjets",
-            "(bjet_indices.size() >= 2) && (Lepton_pt.size() >= 2) && ((nMuon + nElectron) >= 2)",
+            "(bjet_indices.size() >= 2) && (Lepton_pt.size() >= 2)",
         )
 
         monitor_df = df.Filter("pass_bjets")
@@ -1195,11 +1195,6 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
 
         df = df.Define("ttbarReco_success", "pass_bjets && dnsol.hasValidSolution()")
 
-        df = df.Define(
-            "has_valid_nunu",
-            "pass_bjets && dnsol.hasValidSolution()",
-        )
-
         # Reconstruct tops
         df = df.Define(
             "top1",
@@ -1231,7 +1226,7 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
             "pass_bjets && top1.Pt() > 0 && top2.Pt() > 0 ? fabs(TVector2::Phi_mpi_pi(top1.Phi() - top2.Phi())) : -9999.0",
         );
 
-        # MET residual
+        # MET residual (MET that can't be explained by neutrino momenta)
         df = df.Define(
             "pdark",
             "pass_bjets ? ((met_x - nu1_px - nu2_px)*(met_x - nu1_px - nu2_px) + (met_y - nu1_py - nu2_py)*(met_y - nu1_py - nu2_py)) : -9999.0",
@@ -1242,16 +1237,14 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
             "bjet_indices",
             "l1", "l2", "b1", "b2",
             "dnsol","top1", "top2", "l1_top_rf", "l2_top_rf",
+            "H1_flat", "H2_flat", "N1_flat", "N2_flat", "N2_nubar_flat", "nunu_solutions_flat",
             "pass_bjets_float",
             ]
         
         for col in columns_to_drop:
             df = df.DropColumns(col)
 
-        for col in ("H1_flat", "H2_flat", "N1_flat", "N2_flat", "N2_nubar_flat", "nunu_solutions_flat"):
-            df = df.DropColumns(col)
-
-        # Return the final dataframe or continue processing
+        # Return the final dataframe
         return df
         
 

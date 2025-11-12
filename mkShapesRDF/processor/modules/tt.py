@@ -196,6 +196,30 @@ class NuSolutionProducer(Module):
             }
         }
 
+        // Check whether a homogeneous coordinate lies on a conic section defined by "conic".
+        bool satisfiesConic(const TVectorD &v, const TMatrixD &conic, double tol = 1e-6) {
+            if (v.GetNrows() != 3 || conic.GetNrows() != 3 || conic.GetNcols() != 3) {
+                return false;
+            }
+
+            TVectorD Cv = conic * v;
+            double val = 0.0;
+            double norm = 0.0;
+
+            for (int i = 0; i < 3; ++i) {
+                val += v(i) * Cv(i);
+                norm += v(i) * v(i);
+            }
+
+            if (!std::isfinite(val) || !std::isfinite(norm)) {
+                return false;
+            }
+
+            double scale = std::max(norm, 1.0);
+            double normalized = val / scale;
+            return std::abs(normalized) <= tol;
+        }
+
         // factor_degenerate: linear factors (lines) for degenerate quadratic (3x3 symmetric G)
         std::vector<std::array<double,3>> factor_degenerate(
             const TMatrixD &G, double zero = 0.0
@@ -605,7 +629,18 @@ class NuSolutionProducer(Module):
                     M(i,j) += XD_T(i,j);
 
                 // Find intersections
-                solutions = intersections_ellipses(M, UnitCircle()).first;
+                TMatrixD unitCircle = UnitCircle();
+                solutions = intersections_ellipses(M, unitCircle).first;
+
+                // Keep only those solutions that satisfy both conic constraints.
+                solutions.erase(
+                    std::remove_if(
+                        solutions.begin(),
+                        solutions.end(),
+                        [&](const TVectorD& sol) {
+                            return !satisfiesConic(sol, M) || !satisfiesConic(sol, unitCircle);
+                        }),
+                    solutions.end());
 
                 // Sort solutions by chi2
                 std::sort(solutions.begin(), solutions.end(),
@@ -792,8 +827,16 @@ class NuSolutionProducer(Module):
 
 
                     for (const auto& sol : intersections) {
+                        if (!satisfiesConic(sol, N1) || !satisfiesConic(sol, n2)) {
+                            continue;
+                        }
+
                         TVectorD nu1 = sol;
                         TVectorD nu2 = S * sol;
+
+                        if (!satisfiesConic(nu2, N2)) {
+                            continue;
+                        }
 
                         double w1 = (nu1.GetNrows() > 2) ? nu1(2) : 1.0;
                         double w2 = (nu2.GetNrows() > 2) ? nu2(2) : 1.0;

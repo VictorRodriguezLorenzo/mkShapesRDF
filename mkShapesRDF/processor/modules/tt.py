@@ -352,8 +352,20 @@ def plot_ttbar_system(
         extents_y.extend(np.abs(constraint_pts[:, 1]))
 
     # Momentum arrows
-    ax.arrow(0, 0, nu1_px, nu1_py, color="black", head_width=2.0, length_includes_head=True, alpha=0.8)
-    ax.arrow(0, 0, nu2_px, nu2_py, color="gray", head_width=2.0, length_includes_head=True, alpha=0.8)
+    ax.arrow(0, 0, nu1_px, nu1_py,
+         color="black",
+         head_width=2.0,
+         linewidth=3.0,     # << wider shaft
+         length_includes_head=True,
+         alpha=0.8)
+
+    ax.arrow(0, 0, nu2_px, nu2_py,
+         color="gray",
+         head_width=2.0,
+         linewidth=3.0,
+         length_includes_head=True,
+         alpha=0.8)
+
 
     ax.plot([], [], color="black", label="ν momentum")
     ax.plot([], [], color="gray", label="\u03bd̄ momentum")

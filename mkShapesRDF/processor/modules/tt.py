@@ -1,10 +1,5 @@
 import ROOT
-import math
-import matplotlib.pyplot as plt
-import numpy as np
-import os
-from typing import Optional
-
+from mkShapesRDF.processor.framework.module import Module
 
 def format_cutflow(label, passed_proxy, total_proxy):
     """Return a human-readable summary for a single cutflow entry."""
@@ -18,481 +13,6 @@ def format_cutflow(label, passed_proxy, total_proxy):
         efficiency = 0.0
 
     return [label, f"{passed} / {total} ({efficiency:.3f}%)"]
-
-def flat_to_matrix_3x3(flat):
-    """Convert flattened list/array of length 9 into a 3×3 matrix."""
-
-    arr = np.array(flat, dtype=float)
-    if arr.size != 9:
-        raise ValueError("Expected 9 elements to build a 3x3 matrix")
-
-    return arr.reshape((3, 3), order="F")
-
-
-def build_h_perp_from_h(h_matrix):
-    """Construct the H⊥ matrix from the full 3×3 H matrix."""
-
-    h_matrix = np.asarray(h_matrix, dtype=float)
-    if h_matrix.shape != (3, 3):
-        raise ValueError("H matrix must be 3x3")
-
-    h_perp = np.zeros((3, 3), dtype=float)
-    h_perp[:2, :] = h_matrix[:2, :]
-    h_perp[2, 2] = 1.0
-    return h_perp
-
-
-def matrix_from_flat(flat):
-    """Return a 3×3 matrix from a flattened vector, filtering sentinels."""
-
-    try:
-        mat = flat_to_matrix_3x3(flat)
-    except ValueError:
-        return None
-
-    if not np.all(np.isfinite(mat)):
-        return None
-
-    if np.allclose(mat, mat.flat[0]) and np.isclose(mat.flat[0], -9999.0):
-        return None
-
-    return mat
-
-
-def ellipse_points_from_h(h_matrix, num_points=361):
-    """Sample points along an ellipse described by the 3×3 H matrix."""
-
-    if h_matrix is None:
-        return None
-
-    h_matrix = np.asarray(h_matrix, dtype=float)
-    if h_matrix.shape != (3, 3):
-        return None
-
-    h_perp = build_h_perp_from_h(h_matrix)
-    if not np.all(np.isfinite(h_perp)):
-        return None
-
-    angles = np.linspace(0.0, 2.0 * math.pi, num=num_points)
-    circle = np.vstack((np.cos(angles), np.sin(angles), np.ones_like(angles)))
-    points = h_perp @ circle
-    points = points[:2].T
-
-    if points.size == 0 or not np.all(np.isfinite(points)):
-        return None
-
-    return points
-
-
-def ellipse_points_from_conic(conic_matrix, num_points=361):
-    """Sample points along a conic ellipse encoded as a 3×3 homogeneous matrix."""
-
-    if conic_matrix is None:
-        return None
-
-    conic_matrix = np.asarray(conic_matrix, dtype=float)
-    if conic_matrix.shape != (3, 3):
-        return None
-
-    A = 0.5 * (conic_matrix[:2, :2] + conic_matrix[:2, :2].T)
-    b = 0.5 * (conic_matrix[:2, 2] + conic_matrix[2, :2])
-    c = conic_matrix[2, 2]
-
-    if not np.all(np.isfinite(A)) or not np.all(np.isfinite(b)) or not np.isfinite(c):
-        return None
-
-    try:
-        eigvals, eigvecs = np.linalg.eigh(A)
-    except np.linalg.LinAlgError:
-        return None
-
-    if not np.all(np.isfinite(eigvals)):
-        return None
-
-    tol = 1e-9
-
-    if np.all(eigvals < 0):
-        A = -A
-        b = -b
-        c = -c
-        eigvals = -eigvals
-
-    if np.any(eigvals <= tol):
-        if np.any(eigvals < -tol):
-            return None
-        eigvals = np.clip(eigvals, tol, None)
-
-    try:
-        center = -np.linalg.solve(A, b)
-    except np.linalg.LinAlgError:
-        return None
-
-    scale = -float(b.dot(center)) - float(c)
-    if not np.isfinite(scale):
-        return None
-    if scale <= tol:
-        if scale < -tol:
-            return None
-        scale = abs(scale)
-
-    ratio = scale / eigvals
-    if np.any(ratio <= tol):
-        if np.any(ratio < -tol):
-            return None
-        ratio = np.clip(ratio, tol, None)
-
-    radii = np.sqrt(ratio)
-    if not np.all(np.isfinite(radii)):
-        return None
-
-    angles = np.linspace(0.0, 2.0 * math.pi, num=num_points)
-    circle = np.vstack((np.cos(angles), np.sin(angles)))
-    scaled = radii[:, np.newaxis] * circle
-    points = eigvecs @ scaled
-    points = (points.T + center).astype(float)
-
-    if not np.all(np.isfinite(points)):
-        return None
-
-    return points
-
-
-def sample_ellipse_points(primary_matrix, fallback_matrix=None, num_points=361):
-    """Return ellipse samples, trying the primary conic matrix then an optional fallback."""
-
-    points = ellipse_points_from_conic(primary_matrix, num_points=num_points)
-    if points is not None and len(points) > 0:
-        return points
-
-    if fallback_matrix is not None:
-        return ellipse_points_from_h(fallback_matrix, num_points=num_points)
-
-    return None
-
-def plot_event(
-    nu1_px,
-    nu1_py,
-    nu2_px,
-    nu2_py,
-    met_x,
-    met_y,
-    l1_pt_x,
-    l1_pt_y,
-    l2_pt_x,
-    l2_pt_y,
-    b1_pt_x,
-    b1_pt_y,
-    b2_pt_x,
-    b2_pt_y,
-    H1_flat,
-    H2_flat,
-    N1_flat,
-    N2_flat,
-    N2_nubar_flat,
-    nunu_solutions_flat,
-    event_idx,
-    output_dir: Optional[str] = None,
-):
-
-    if output_dir is None:
-        output_dir = os.environ.get("NU_SOLUTION_PLOT_DIR")
-    if not output_dir:
-        return
-
-    fig, ax = plt.subplots(figsize=(8, 8))
-
-    def arrow(x, y, label, color, lw=1.5):
-        ax.arrow(
-            0,
-            0,
-            x,
-            y,
-            head_width=2,
-            length_includes_head=True,
-            color=color,
-            alpha=0.8,
-            linewidth=lw,
-        )
-        ax.plot([], [], color=color, label=label)
-
-    # Momentum vectors
-    arrow(nu1_px, nu1_py, "Neutrino 1", "blue")
-    arrow(nu2_px, nu2_py, "Neutrino 2", "pink")
-    arrow(met_x, met_y, "MET", "red", lw=2)
-    arrow(l1_pt_x, l1_pt_y, "Lepton 1", "lightblue")
-    arrow(l2_pt_x, l2_pt_y, "Lepton 2", "purple")
-    arrow(b1_pt_x, b1_pt_y, "B-jet 1", "cyan")
-    arrow(b2_pt_x, b2_pt_y, "B-jet 2", "magenta")
-
-    extents_x = [abs(nu1_px), abs(nu2_px), abs(met_x), abs(l1_pt_x), abs(l2_pt_x), abs(b1_pt_x), abs(b2_pt_x)]
-    extents_y = [abs(nu1_py), abs(nu2_py), abs(met_y), abs(l1_pt_y), abs(l2_pt_y), abs(b1_pt_y), abs(b2_pt_y)]
-
-    H1 = matrix_from_flat(H1_flat)
-    H2 = matrix_from_flat(H2_flat)
-    N1 = matrix_from_flat(N1_flat)
-    N2_constraint = matrix_from_flat(N2_flat)
-    N2_nubar = matrix_from_flat(N2_nubar_flat)
-
-    def draw_conic(matrix, label, color, transform=None, plot_kwargs=None, fallback=None):
-        pts = sample_ellipse_points(matrix, fallback_matrix=fallback)
-        if pts is None or len(pts) == 0:
-            return
-
-        if transform is not None:
-            pts = np.array([transform(pt) for pt in pts if np.all(np.isfinite(pt))])
-            if pts.size == 0:
-                return
-
-        plot_args = {"color": color, "alpha": 0.8, "label": label}
-        if plot_kwargs:
-            plot_args.update(plot_kwargs)
-        ax.plot(pts[:, 0], pts[:, 1], **plot_args)
-        extents_x.extend(np.abs(pts[:, 0]))
-        extents_y.extend(np.abs(pts[:, 1]))
-
-    draw_conic(N1, "N₁ ellipse", "navy", fallback=H1)
-    if N2_nubar is not None:
-        draw_conic(N2_nubar, "ν̄ ellipse", "darkorange", fallback=H2)
-    if N2_constraint is not None:
-        draw_conic(
-            N2_constraint,
-            "Constraint from ν̄",
-            "black",
-            plot_kwargs={"linestyle": "--", "alpha": 0.9},
-        )
-
-    # Formatting
-    ax.set_xlabel("pT_x (GeV)")
-    ax.set_ylabel("pT_y (GeV)")
-    ax.set_title(f"Event {event_idx}: Neutrino Solutions and Conic Ellipses")
-    ax.axhline(0, color="black", lw=0.5, ls="--")
-    ax.axvline(0, color="black", lw=0.5, ls="--")
-
-    if extents_x and extents_y:
-        limit = max(max(extents_x), max(extents_y))
-        if math.isfinite(limit) and limit > 0:
-            ax.set_xlim(-1.2 * limit, 1.2 * limit)
-            ax.set_ylim(-1.2 * limit, 1.2 * limit)
-
-    ax.legend()
-    ax.grid(True)
-    ax.set_aspect("equal")
-
-    os.makedirs(output_dir, exist_ok=True)
-    fig.savefig(f"{output_dir}/event_{event_idx}_neutrino_solutions.png")
-    plt.close(fig)
-
-    plot_ttbar_system(
-        nu1_px,
-        nu1_py,
-        nu2_px,
-        nu2_py,
-        met_x,
-        met_y,
-        N1,
-        N2_constraint,
-        N2_nubar,
-        H1,
-        H2,
-        nunu_solutions_flat,
-        event_idx,
-        os.path.join(output_dir, "ttbar_system"),
-    )
-
-
-def plot_ttbar_system(
-    nu1_px,
-    nu1_py,
-    nu2_px,
-    nu2_py,
-    met_x,
-    met_y,
-    N1_matrix,
-    N2_constraint_matrix,
-    N2_nubar_matrix,
-    H1_matrix,
-    H2_matrix,
-    nunu_solutions_flat,
-    event_idx,
-    output_dir: Optional[str] = None,
-):
-
-    if output_dir is None:
-        output_dir = os.environ.get("NU_SOLUTION_TTBAR_PLOT_DIR")
-    if not output_dir:
-        return
-
-    fig, ax = plt.subplots(figsize=(8, 8))
-
-    extents_x = []
-    extents_y = []
-
-    nu_pts = sample_ellipse_points(N1_matrix, fallback_matrix=H1_matrix)
-    if nu_pts is not None and len(nu_pts) > 0:
-        ax.plot(nu_pts[:, 0], nu_pts[:, 1], color="black", alpha=0.9, label="ν ellipse")
-        extents_x.extend(np.abs(nu_pts[:, 0]))
-        extents_y.extend(np.abs(nu_pts[:, 1]))
-
-    nubar_pts = sample_ellipse_points(N2_nubar_matrix, fallback_matrix=H2_matrix)
-    constraint_pts = sample_ellipse_points(N2_constraint_matrix)
-    if nubar_pts is not None and len(nubar_pts) > 0:
-        ax.plot(nubar_pts[:, 0], nubar_pts[:, 1], color="dimgray", alpha=0.9, label="\u03bd̄ ellipse")
-        extents_x.extend(np.abs(nubar_pts[:, 0]))
-        extents_y.extend(np.abs(nubar_pts[:, 1]))
-    if constraint_pts is not None and len(constraint_pts) > 0:
-        ax.plot(
-            constraint_pts[:, 0],
-            constraint_pts[:, 1],
-            color="black",
-            linestyle="--",
-            alpha=0.9,
-            label="Constraint from \u03bd̄",
-        )
-        extents_x.extend(np.abs(constraint_pts[:, 0]))
-        extents_y.extend(np.abs(constraint_pts[:, 1]))
-
-    # Momentum arrows
-    ax.arrow(0, 0, nu1_px, nu1_py,
-         color="black",
-         head_width=2.0,
-         linewidth=3.0,     # << wider shaft
-         length_includes_head=True,
-         alpha=0.8)
-
-    ax.arrow(0, 0, nu2_px, nu2_py,
-         color="gray",
-         head_width=2.0,
-         linewidth=3.0,
-         length_includes_head=True,
-         alpha=0.8)
-
-
-    ax.plot([], [], color="black", label="ν momentum")
-    ax.plot([], [], color="gray", label="\u03bd̄ momentum")
-
-    extents_x.extend([abs(nu1_px), abs(nu2_px), abs(met_x)])
-    extents_y.extend([abs(nu1_py), abs(nu2_py), abs(met_y)])
-
-    # Mark MET and neutrino sum hypothesis
-    ax.scatter([met_x], [met_y], marker="x", color="red", s=80, label="MET (×)")
-
-    best_sum_x = nu1_px + nu2_px
-    best_sum_y = nu1_py + nu2_py
-    if math.isfinite(best_sum_x) and math.isfinite(best_sum_y):
-        ax.scatter([best_sum_x], [best_sum_y], marker="o", facecolors="none", edgecolors="red", s=80, label="ν+\u03bd̄ (◦)")
-        extents_x.append(abs(best_sum_x))
-        extents_y.append(abs(best_sum_y))
-
-    # Plot solution pairs
-    marker_cycle = ["o", "s", "^", "D", "P", "X", "v", "*"]
-    nunu_pairs = np.empty((0, 4))
-    if nunu_solutions_flat is not None:
-        flat = np.asarray(nunu_solutions_flat, dtype=float)
-        if flat.size % 4 == 0:
-            nunu_pairs = flat.reshape((-1, 4))
-
-    for idx, (sol_nu1_x, sol_nu1_y, sol_nu2_x, sol_nu2_y) in enumerate(nunu_pairs):
-        marker = marker_cycle[idx % len(marker_cycle)]
-        ax.scatter(
-            [sol_nu1_x],
-            [sol_nu1_y],
-            marker=marker,
-            color="black",
-            s=90,
-            label=f"Solution {idx+1} (ν)" if idx == 0 else None,
-        )
-        ax.scatter(
-            [sol_nu2_x],
-            [sol_nu2_y],
-            marker=marker,
-            color="gray",
-            s=90,
-            label=f"Solution {idx+1} (\u03bd̄)" if idx == 0 else None,
-        )
-
-        transformed_x = met_x - sol_nu2_x
-        transformed_y = met_y - sol_nu2_y
-        ax.scatter(
-            [transformed_x],
-            [transformed_y],
-            marker=marker,
-            facecolors="none",
-            edgecolors="black",
-            s=120,
-            label="Intersection" if idx == 0 else None,
-        )
-
-        extents_x.extend([abs(sol_nu1_x), abs(sol_nu2_x), abs(transformed_x)])
-        extents_y.extend([abs(sol_nu1_y), abs(sol_nu2_y), abs(transformed_y)])
-
-    if nunu_pairs.size == 0 and nu_pts is not None and constraint_pts is not None:
-        try:
-            diffs = nu_pts[:, np.newaxis, :] - constraint_pts[np.newaxis, :, :]
-            distances = np.linalg.norm(diffs, axis=2)
-            min_flat = np.argmin(distances)
-            i, j = divmod(int(min_flat), distances.shape[1])
-        except (ValueError, TypeError):
-            i = j = None
-
-        if i is not None and j is not None:
-            best_nu = nu_pts[i]
-            best_constraint = constraint_pts[j]
-
-            marker = marker_cycle[0]
-            ax.scatter(
-                [best_nu[0]],
-                [best_nu[1]],
-                marker=marker,
-                color="black",
-                s=90,
-                label="Closest ν",
-            )
-            ax.scatter(
-                [best_constraint[0]],
-                [best_constraint[1]],
-                marker=marker,
-                facecolors="none",
-                edgecolors="black",
-                s=120,
-                label="Closest constraint",
-            )
-
-            ax.plot(
-                [best_nu[0], best_constraint[0]],
-                [best_nu[1], best_constraint[1]],
-                color="black",
-                linestyle=":",
-                linewidth=1.0,
-                alpha=0.7,
-                label="Closest separation",
-            )
-
-            extents_x.extend([abs(best_nu[0]), abs(best_constraint[0])])
-            extents_y.extend([abs(best_nu[1]), abs(best_constraint[1])])
-
-    ax.set_xlabel("pT_x (GeV)")
-    ax.set_ylabel("pT_y (GeV)")
-    ax.set_title(f"Event {event_idx}: t\u0304t system constraints")
-    ax.axhline(0, color="black", lw=0.5, ls="--")
-    ax.axvline(0, color="black", lw=0.5, ls="--")
-
-    if extents_x and extents_y:
-        limit = max(max(extents_x), max(extents_y))
-        if math.isfinite(limit) and limit > 0:
-            ax.set_xlim(-1.2 * limit, 1.2 * limit)
-            ax.set_ylim(-1.2 * limit, 1.2 * limit)
-
-    ax.set_aspect("equal")
-    ax.grid(True)
-    ax.legend(loc="upper right", fontsize="small", ncol=2)
-
-    os.makedirs(output_dir, exist_ok=True)
-    fig.savefig(f"{output_dir}/event_{event_idx}_ttbar_system.png")
-    plt.close(fig)
-
-
-import ROOT
-from mkShapesRDF.processor.framework.module import Module
 
 class NuSolutionProducer(Module):
     def __init__(self):
@@ -510,89 +30,20 @@ class NuSolutionProducer(Module):
         #include <array>
         #include <algorithm>
         #include <limits>
-        #include <iostream>
         #include <memory>
         #include <functional>
         #include <string>
         #include <cstdlib>
         #include <TMatrixDSymEigen.h>
-        #include <sstream>
-        #include <iomanip>
-        #include <cctype>
-                                  
 
         namespace nuana {
 
         // ---------- Utilities ----------
 
-        bool debug_enabled() {
-            static const bool enabled = [](){
-                const char* env = std::getenv("NU_DEBUG");
-                return env && std::string(env) != "0";
-            }();
-            return enabled;
-        }
-
-        void debug_log(const std::string& message) {
-            if (debug_enabled()) {
-                std::cout << "[nuana] " << message << std::endl;
-            }
-        }
-
         // Toggle to force-enable the MET minimizer fallback when the ellipse
         // intersection search fails. Set to true if you want to retain the
         // original behaviour.
-        constexpr bool kEnableMinimizerFallback = false;
-
-        std::string format_tlv(const TLorentzVector& v) {
-            std::ostringstream oss;
-            oss.setf(std::ios::fixed);
-            oss << std::setprecision(3)
-                << "(px=" << v.Px()
-                << ", py=" << v.Py()
-                << ", pz=" << v.Pz()
-                << ", E=" << v.E()
-                << ", M=" << v.M() << ")";
-            return oss.str();
-        }
-
-        std::string format_array2(const std::array<double,2>& arr) {
-            std::ostringstream oss;
-            oss.setf(std::ios::fixed);
-            oss << std::setprecision(6)
-                << "(" << arr[0] << ", " << arr[1] << ")";
-            return oss.str();
-        }
-
-        std::string format_tvectord(const TVectorD& vec) {
-            std::ostringstream oss;
-            oss.setf(std::ios::fixed);
-            oss << std::setprecision(6) << "[";
-            for (int i = 0; i < vec.GetNrows(); ++i) {
-                if (i != 0) oss << ", ";
-                oss << vec(i);
-            }
-            oss << "]";
-            return oss.str();
-        }
-
-        std::string format_matrix(const TMatrixD& mat) {
-            std::ostringstream oss;
-            oss.setf(std::ios::fixed);
-            oss << std::setprecision(6);
-            oss << "[";
-            for (int r = 0; r < mat.GetNrows(); ++r) {
-                if (r != 0) oss << ", ";
-                oss << "[";
-                for (int c = 0; c < mat.GetNcols(); ++c) {
-                    if (c != 0) oss << ", ";
-                    oss << mat(r, c);
-                }
-                oss << "]";
-            }
-            oss << "]";
-            return oss.str();
-        }
+        constexpr bool kEnableMinimizerFallback = true;
 
         // UnitCircle: returns a 3x3 matrix representing the unit circle in the F' coordinate system
         TMatrixD UnitCircle() {
@@ -642,16 +93,9 @@ class NuSolutionProducer(Module):
         }
 
         bool invert3x3(const TMatrixD &M, TMatrixD &inv, double tol = 1e-12) {
-            if (debug_enabled()) {
-                debug_log("invert3x3: attempting inversion with tol=" + std::to_string(tol) +
-                          ", matrix=" + format_matrix(M));
-            }
 
             double det = det3x3(M);
             if (!std::isfinite(det) || std::abs(det) <= tol) {
-                if (debug_enabled()) {
-                    debug_log("invert3x3: singular matrix encountered, det=" + std::to_string(det));
-                }
                 return false;
             }
 
@@ -667,10 +111,6 @@ class NuSolutionProducer(Module):
             inv(2,1) = -(M(0,0) * M(2,1) - M(0,1) * M(2,0)) / det;
             inv(2,2) =  (M(0,0) * M(1,1) - M(0,1) * M(1,0)) / det;
 
-            if (debug_enabled()) {
-                debug_log("invert3x3: successful inversion, det=" + std::to_string(det) +
-                          ", inverse=" + format_matrix(inv));
-            }
 
             return true;
         }
@@ -821,7 +261,6 @@ class NuSolutionProducer(Module):
             return lines;
         }
 
-
         std::vector<TVectorD> intersections_ellipse_line(
             const TMatrixD &ellipse,
             const std::array<double,3> &line,
@@ -884,7 +323,6 @@ class NuSolutionProducer(Module):
             return result;
         }
 
-
         std::pair<std::vector<TVectorD>, std::vector<std::array<double,3>>>
         intersections_ellipses(
             const TMatrixD &A, const TMatrixD &B,
@@ -938,7 +376,6 @@ class NuSolutionProducer(Module):
             return {points, std::vector<std::array<double,3>>{}};
         }
 
-
         struct nuSolutionSet {
             TLorentzVector b, mu;
             double c, s, x0, x0p, Sx, Sy, w, w_, x1, y1, Z, Om2, eps2, mW2;
@@ -961,36 +398,14 @@ class NuSolutionProducer(Module):
                 double mT2 = mT * mT;
                 double mN2 = mN * mN;
 
-            if (debug_enabled()) {
-                std::ostringstream oss;
-                oss << "nuSolutionSet: constructing with b=" << format_tlv(b)
-                    << ", mu=" << format_tlv(mu)
-                    << ", mW=" << mW
-                    << ", mT=" << mT
-                    << ", mN=" << mN;
-                debug_log(oss.str());
-            }
-
             c = ROOT::Math::VectorUtil::CosTheta(b, mu);
             s = std::sqrt(1.0 - c * c);
-
-            if (debug_enabled()) {
-                debug_log("nuSolutionSet: cos(theta)=" + std::to_string(c) +
-                          ", sin(theta)=" + std::to_string(s));
-            }
 
             x0p = - (mT2 - mW2 - b.M2()) / (2.0 * b.E());
             x0  = - (mW2 - mu.M2() - mN2) / (2.0 * mu.E());
 
             double Bb = b.Beta();
             double Bm = mu.Beta();
-
-            if (debug_enabled()) {
-                std::ostringstream oss;
-                oss << "nuSolutionSet: x0=" << x0 << ", x0p=" << x0p
-                    << ", Bb=" << Bb << ", Bm=" << Bm;
-                debug_log(oss.str());
-            }
 
             const double Bm2 = Bm * Bm;
             Sx = (x0 * Bm - mu.P() * (1.0 - Bm * Bm)) / Bm2;
@@ -999,12 +414,6 @@ class NuSolutionProducer(Module):
             w  = (Bm / Bb - c) / s;
             w_ = (-Bm / Bb - c) / s;
 
-            if (debug_enabled()) {
-                std::ostringstream oss;
-                oss << "nuSolutionSet: w=" << w << ", w_=" << w_;
-                debug_log(oss.str());
-            }
-
             Om2 = w * w + 1.0 - Bm * Bm;
             eps2 = (mW2 - mN2) * (1.0 - Bm * Bm);
 
@@ -1012,29 +421,9 @@ class NuSolutionProducer(Module):
             y1 = Sy - (Sx + w * Sy) * w / Om2;
 
             double Z2 = x1 * x1 * Om2 - (Sy - w * Sx) * (Sy - w * Sx) - (mW2 - x0 * x0 - eps2);
-            if (debug_enabled()) {
-                debug_log(
-                    "nuSolutionSet: computed parameters Sx=" + std::to_string(Sx) +
-                    ", Sy=" + std::to_string(Sy) +
-                    ", w=" + std::to_string(w) +
-                    ", w_=" + std::to_string(w_) +
-                    ", Om2=" + std::to_string(Om2) +
-                    ", eps2=" + std::to_string(eps2) +
-                    ", Z2=" + std::to_string(Z2) +
-                    "  x0=" + std::to_string(x0) +
-                    ", x0p=" + std::to_string(x0p) +
-                    "  x1=" + std::to_string(x1) +
-                    ", y1=" + std::to_string(y1) +
-                    "  c=" + std::to_string(c) +
-                    ", s=" + std::to_string(s)
-                );
-            }
  
             // Calculate Z
             Z = std::sqrt(std::max(0.0, Z2));
-            if (debug_enabled() && Z2 < 0.0) {
-                debug_log("nuSolutionSet: Z2 negative, clamped to zero before sqrt.");
-            }
             }
 
             // Extended rotation from F' to F coord.
@@ -1061,7 +450,6 @@ class NuSolutionProducer(Module):
 
                 return A;
             }
-
                                   
             // F coord. constraint on W momentum: ellipsoid
             TMatrixD A_b() const {
@@ -1079,7 +467,6 @@ class NuSolutionProducer(Module):
                 result *= KT;
                 return result;
             }
-            
                                   
             // Rotation from F coord. to laboratory coord.
             TMatrixD getR_T() const {
@@ -1122,9 +509,6 @@ class NuSolutionProducer(Module):
             // Transformation of t=[c,s,1] to p_nu: lab coord.
             TMatrixD getH() const {
                 TMatrixD result = getR_T() * getH_tilde();
-                if (debug_enabled()) {
-                    debug_log("nuSolutionSet::getH: result=" + format_matrix(result));
-                }
                 return result;
             }
 
@@ -1139,12 +523,8 @@ class NuSolutionProducer(Module):
                     }
                 }
                 h_perp(2,2) = 1.0;
-                if (debug_enabled()) {
-                    debug_log("nuSolutionSet::getH_perp: result=" + format_matrix(h_perp));
-                }
                 return h_perp;
             }
-
 
             // Solution ellipse of pT_nu: lab coord.
             TMatrixD getN() const {
@@ -1156,9 +536,6 @@ class NuSolutionProducer(Module):
                 const double det = det3x3(Hp);
                 if (!std::isfinite(det) || std::abs(det) < 1e-12) {
                     usedMatrixFallback_ = true;
-                    if (debug_enabled()) {
-                        debug_log("nuSolutionSet::getN: inversion failed, using identity.");
-                    }
                     TMatrixD fallback(3,3);
                     fallback.UnitMatrix();
                     return fallback;
@@ -1167,9 +544,6 @@ class NuSolutionProducer(Module):
                 HpInv.Invert();
                 TMatrixD HpInvT(TMatrixD::kTransposed, HpInv);
                 TMatrixD result = HpInvT * UnitCircle() * HpInv;
-                if (debug_enabled()) {
-                    debug_log("nuSolutionSet::getN: result=" + format_matrix(result));
-                }
                 return result;
             }
 
@@ -1196,19 +570,10 @@ class NuSolutionProducer(Module):
                                   double mW2 = 80.385*80.385, double mT2 = 172.5*172.5)
                 : solutionSet(b, mu, std::sqrt(mW2), std::sqrt(mT2))
             {
-                if (debug_enabled()) {
-                    std::ostringstream oss;
-                    oss << "singleNeutrinoSolution: inputs b=" << format_tlv(b)
-                        << ", mu=" << format_tlv(mu)
-                        << ", metX=" << metX
-                        << ", metY=" << metY;
-                    debug_log(oss.str());
-                }
                 // Build S2: inverse of sigma2, padded to 3x3
                 TMatrixD S2(3,3); S2.Zero();
                 TMatrixD sigma2_inv;
                 if (!invert2x2(sigma2, sigma2_inv)) {
-                    debug_log("singleNeutrinoSolution: MET covariance inversion failed, using identity.");
                     sigma2_inv.ResizeTo(2,2);
                     sigma2_inv.UnitMatrix();
                 }
@@ -1231,9 +596,6 @@ class NuSolutionProducer(Module):
                 TMatrixD deltaNu_T(TMatrixD::kTransposed, deltaNu);
                 X = deltaNu_T * S2 * deltaNu;
 
-                if (debug_enabled()) {
-                    debug_log("singleNeutrinoSolution: constraint matrix X=" + format_matrix(X));
-                }
 
                 // M = X * Derivative() + (X * Derivative()).T
                 TMatrixD XD = X * Derivative();
@@ -1244,14 +606,6 @@ class NuSolutionProducer(Module):
 
                 // Find intersections
                 solutions = intersections_ellipses(M, UnitCircle()).first;
-
-                if (debug_enabled()) {
-                    debug_log("singleNeutrinoSolution: found " + std::to_string(solutions.size()) + " candidate solutions");
-                    for (size_t idx = 0; idx < solutions.size(); ++idx) {
-                        debug_log("singleNeutrinoSolution: solution[" + std::to_string(idx) + "]=" + format_tvectord(solutions[idx]));
-                    }
-                }
-
 
                 // Sort solutions by chi2
                 std::sort(solutions.begin(), solutions.end(),
@@ -1271,9 +625,6 @@ class NuSolutionProducer(Module):
                 if (solutions.empty()) return invalidValue();
                 double chi2_val = calcX2(solutions[0]);
                 if (!std::isfinite(chi2_val)) return invalidValue();
-                if (debug_enabled()) {
-                    debug_log("singleNeutrinoSolution: best chi2=" + std::to_string(chi2_val));
-                }
                 return chi2_val;
             }
 
@@ -1356,7 +707,6 @@ class NuSolutionProducer(Module):
             }
         };
                                   
-
         // doubleNeutrinoSolution: finds the best double-neutrino solution for given b-jet and lepton momenta.
         class doubleNeutrinoSolution {
         public:
@@ -1406,15 +756,6 @@ class NuSolutionProducer(Module):
                                        const TLorentzVector& L1, const TLorentzVector& L2) {
                     PairingResult result;
 
-                    if (debug_enabled()) {
-                        std::ostringstream oss;
-                        oss << "doubleNeutrinoSolution::try_pairing: B1=" << format_tlv(B1)
-                            << ", B2=" << format_tlv(B2)
-                            << ", L1=" << format_tlv(L1)
-                            << ", L2=" << format_tlv(L2);
-                        debug_log(oss.str());
-                    }
-
                     nuana::nuSolutionSet ss1(B1, L1, mW, mT);
                     nuana::nuSolutionSet ss2(B2, L2, mW, mT);
 
@@ -1449,9 +790,6 @@ class NuSolutionProducer(Module):
                     std::vector<TVectorD> intersections =
                         nuana::intersections_ellipses(N1, n2).first;
 
-                    if (debug_enabled()) {
-                        debug_log("doubleNeutrinoSolution::try_pairing: intersections=" + std::to_string(intersections.size()));
-                    }
 
                     for (const auto& sol : intersections) {
                         TVectorD nu1 = sol;
@@ -1470,17 +808,10 @@ class NuSolutionProducer(Module):
 
                         if (isFinitePair(pair)) {
                             result.solutions.push_back(pair);
-                            if (debug_enabled()) {
-                                debug_log("doubleNeutrinoSolution::try_pairing: added intersection solution nu1=" +
-                                          format_array2(pair.first) + ", nu2=" + format_array2(pair.second));
-                            }
                         }
                     }
 
                     if (result.solutions.empty() && kEnableMinimizerFallback) {
-                        if (debug_enabled()) {
-                            debug_log("doubleNeutrinoSolution::try_pairing: no direct intersections, invoking minimizer fallback.");
-                        }
                         TMatrixD es1 = ss1.getH_perp();
                         TMatrixD es2 = ss2.getH_perp();
 
@@ -1564,18 +895,8 @@ class NuSolutionProducer(Module):
                                 pair.second = {fallbackSolutions[1](0), fallbackSolutions[1](1)};
                                 result.solutions.push_back(pair);
                                 result.usedMinimizerFallback = true;
-                                if (debug_enabled()) {
-                                    debug_log("doubleNeutrinoSolution::try_pairing: minimizer produced solution nu1=" +
-                                              format_array2(pair.first) + ", nu2=" + format_array2(pair.second));
-                                }
-                            } else {
-                                debug_log("doubleNeutrinoSolution::try_pairing: minimizer failed to converge.");
                             }
-                        } else {
-                            debug_log("doubleNeutrinoSolution::try_pairing: failed to create Minuit2 minimizer instance.");
                         }
-                    } else if (result.solutions.empty() && debug_enabled()) {
-                        debug_log("doubleNeutrinoSolution::try_pairing: minimizer fallback disabled, leaving solution list empty.");
                     }
 
                     if (!result.solutions.empty()) {
@@ -1598,26 +919,6 @@ class NuSolutionProducer(Module):
                             }
                         );
 
-                        if (debug_enabled()) {
-                            const auto& best = result.solutions.front();
-                            double best_res = pairResidualSq(best);
-                            debug_log(
-                                "doubleNeutrinoSolution::try_pairing: best MET residual squared=" +
-                                std::to_string(best_res) +
-                                ", nu1=" + format_array2(best.first) +
-                                ", nu2=" + format_array2(best.second)
-                            );
-                        }
-                    } else if (debug_enabled()) {
-                        debug_log("doubleNeutrinoSolution::try_pairing: returning " +
-                                  std::to_string(result.solutions.size()) + " solutions" +
-                                  (result.usedMinimizerFallback ? " (fallback used)" : ""));
-                    }
-
-                    if (debug_enabled() && !result.solutions.empty()) {
-                        debug_log("doubleNeutrinoSolution::try_pairing: returning " +
-                                  std::to_string(result.solutions.size()) + " solutions" +
-                                  (result.usedMinimizerFallback ? " (fallback used)" : ""));
                     }
 
                     return result;
@@ -1628,10 +929,6 @@ class NuSolutionProducer(Module):
 
                 double residual1 = metResidual(pairing1, met_x, met_y);
                 double residual2 = metResidual(pairing2, met_x, met_y);
-                if (debug_enabled()) {
-                    debug_log("doubleNeutrinoSolution: residual pairing1=" + std::to_string(residual1) +
-                              ", pairing2=" + std::to_string(residual2));
-                }
 
                 if (residual1 <= residual2) {
                     nunu_s = pairing1.solutions;
@@ -1646,10 +943,6 @@ class NuSolutionProducer(Module):
                     N2_constraint_ = pairing1.N2_constraint;
                     N2_nubar_ = pairing1.N2_nubar;
                     usedMinimizerFallback_ = pairing1.usedMinimizerFallback;
-                    if (debug_enabled()) {
-                        debug_log("doubleNeutrinoSolution: selected pairing1 with " +
-                                  std::to_string(nunu_s.size()) + " solutions");
-                    }
                 } else {
                     nunu_s = pairing2.solutions;
                     H1.ResizeTo(pairing2.H1.GetNrows(), pairing2.H1.GetNcols());
@@ -1663,10 +956,6 @@ class NuSolutionProducer(Module):
                     N2_constraint_ = pairing2.N2_constraint;
                     N2_nubar_ = pairing2.N2_nubar;
                     usedMinimizerFallback_ = pairing2.usedMinimizerFallback;
-                    if (debug_enabled()) {
-                        debug_log("doubleNeutrinoSolution: selected pairing2 with " +
-                                  std::to_string(nunu_s.size()) + " solutions");
-                    }
                 }
 
                 if (nunu_s.empty()) {
@@ -1675,7 +964,6 @@ class NuSolutionProducer(Module):
                                       {std::numeric_limits<double>::quiet_NaN(),
                                        std::numeric_limits<double>::quiet_NaN()}};
                     nunu_s.push_back(empty_pair);
-                    debug_log("doubleNeutrinoSolution: no solutions found, inserting NaN placeholders.");
                 }
             }
 
@@ -1775,13 +1063,6 @@ class NuSolutionProducer(Module):
                 double sumx = best.first[0] + best.second[0];
                 double sumy = best.first[1] + best.second[1];
                 double residual = std::hypot(sumx - met_x, sumy - met_y);
-                if (debug_enabled()) {
-                    debug_log("doubleNeutrinoSolution::metResidual: sumx=" + std::to_string(sumx) +
-                              ", sumy=" + std::to_string(sumy) +
-                              ", met_x=" + std::to_string(met_x) +
-                              ", met_y=" + std::to_string(met_y) +
-                              ", residual=" + std::to_string(residual));
-                }
                 return residual;
             }
 
@@ -1811,8 +1092,6 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
     return bjet_indices;
     }
         """)
-
-
 
         df = df.Define(
             "bjet_indices",
@@ -1854,16 +1133,6 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
         df = df.Define("met_x", "PuppiMET_pt * TMath::Cos(PuppiMET_phi)")
         df = df.Define("met_y", "PuppiMET_pt * TMath::Sin(PuppiMET_phi)")
 
-#        covariance_sources = [
-#            ("PuppiMET_covXX", "PuppiMET_covXY", "PuppiMET_covYY"),
-#            ("MET_covXX", "MET_covXY", "MET_covYY"),
-#        ]
-#        cov_expr = "makeMetCov(1.0, 0.0, 1.0)"
-#        for cov_xx, cov_xy, cov_yy in covariance_sources:
-#            if all(df.df.HasColumn(col) for col in (cov_xx, cov_xy, cov_yy)):
-#                cov_expr = f"makeMetCov({cov_xx}, {cov_xy}, {cov_yy})"
-#                break
-       
         # Define leptons momenta in x and y
         df = df.Define("l1_pt_x", "pass_bjets ? l1.Px() : -9999.0")
         df = df.Define("l1_pt_y", "pass_bjets ? l1.Py() : -9999.0")
@@ -1878,58 +1147,6 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
         df = df.Define("b2_pt_x",  "pass_bjets ? b2.Px() : -9999.0")
         df = df.Define("b2_pt_y",  "pass_bjets ? b2.Py() : -9999.0")
         df = df.Define("b2_phi",  "pass_bjets ? b2.Phi() : -9999.0")
-
-
-#        # Build single-neutrino solutions for all b/lepton pairings
-#        single_pairs = [
-#            ("b1l1", "b1", "l1"),
-#            ("b1l2", "b1", "l2"),
-#            ("b2l1", "b2", "l1"),
-#            ("b2l2", "b2", "l2"),
-#        ]
-#
-#        for suffix, b_name, l_name in single_pairs:
-#            sn_name = f"snsol_{suffix}"
-#            df = df.Define(
-#                sn_name,
-#                f"pass_bjets ? singleNeutrinoSolution({b_name}, {l_name}, met_x, met_y, {cov_expr}) : singleNeutrinoSolution()",
-#            )
-#            df = df.Define(
-#                f"singleNu_{suffix}_valid",
-#                f"pass_bjets ? {sn_name}.isValid() : false",
-#            )
-#            df = df.Define(
-#                f"singleNu_{suffix}_chi2",
-#                f"pass_bjets ? {sn_name}.chi2() : -999.0",
-#            )
-#            df = df.Define(
-#                f"singleNu_{suffix}_px",
-#                f"pass_bjets ? {sn_name}.nu_px() : -999.0",
-#            )
-#            df = df.Define(
-#                f"singleNu_{suffix}_py",
-#                f"pass_bjets ? {sn_name}.nu_py() : -999.0",
-#            )
-#            df = df.Define(
-#                f"singleNu_{suffix}_pz",
-#                f"pass_bjets ? {sn_name}.nu_pz() : -999.0",
-#            )
-#            df = df.Define(
-#                f"singleNu_{suffix}_pt",
-#                f"pass_bjets ? {sn_name}.nu_pt() : -999.0",
-#            )
-#            df = df.Define(
-#                f"singleNu_{suffix}_phi",
-#                f"pass_bjets ? {sn_name}.nu_phi() : -999.0",
-#            )
-#            df = df.Define(
-#                f"singleNu_{suffix}_energy",
-#                f"pass_bjets ? {sn_name}.nu_energy() : -999.0",
-#            )
-#            df = df.Define(
-#                f"singleNu_{suffix}_usedMatrixFallback",
-#                f"pass_bjets ? {sn_name}.usedMatrixFallback() : false",
-#            )
 
         # Build double-neutrino solutions
         df = df.Define(
@@ -2011,8 +1228,8 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
         # Absolute Δφ between tops
         df = df.Define(
             "dphi_ttbar",
-            "pass_bjets ? fabs(TVector2::Phi_mpi_pi(top1.Phi() - top2.Phi())) : -9999.0",
-        )
+            "pass_bjets && top1.Pt() > 0 && top2.Pt() > 0 ? fabs(TVector2::Phi_mpi_pi(top1.Phi() - top2.Phi())) : -9999.0",
+        );
 
         # MET residual
         df = df.Define(
@@ -2024,48 +1241,12 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
         columns_to_drop = [
             "bjet_indices",
             "l1", "l2", "b1", "b2",
-#            "snsol_b1l1", "snsol_b1l2", "snsol_b2l1", "snsol_b2l2",
-            "dnsol",
-            "top1", "top2", "l1_top_rf", "l2_top_rf",
+            "dnsol","top1", "top2", "l1_top_rf", "l2_top_rf",
             "pass_bjets_float",
             ]
         
         for col in columns_to_drop:
             df = df.DropColumns(col)
-
-        plot_columns_float = [ "nu1_px", "nu1_py", "nu2_px", "nu2_py", "met_x", "met_y", "l1_pt_x", "l1_pt_y", "l2_pt_x", "l2_pt_y", "b1_pt_x", "b1_pt_y", "b2_pt_x", "b2_pt_y" ]
-
-        plot_columns_vector = ["H1_flat", "H2_flat", "N1_flat", "N2_flat", "N2_nubar_flat", "nunu_solutions_flat"]
-
-        data_cache = {}
-
-        for col in plot_columns_float:
-            vals = df.df.Take[ROOT.double](col)  # lowercase 'double'
-            data_cache[col] = list(vals)
-
-        vec_double_type = ROOT.std.vector('double')
-        for col in plot_columns_vector:
-            vals = df.df.Take[vec_double_type](col)  # each vals[i] is already vector<double>
-            data_cache[col] = list(vals)
-
-        pass_mask = list(df.df.Take[ROOT.double]("pass_bjets_float"))
-        n_events = len(pass_mask)
-
-        for i in range(n_events):
-            if pass_mask[i] < 0.5:
-                continue
-            if not (
-                math.isfinite(data_cache["nu1_px"][i])
-                and math.isfinite(data_cache["nu1_py"][i])
-                and math.isfinite(data_cache["nu2_px"][i])
-                and math.isfinite(data_cache["nu2_py"][i])
-            ):
-                continue
-
-            plot_args = [data_cache[col][i] for col in plot_columns_float]
-            plot_args += [data_cache[col][i] for col in plot_columns_vector]  # each is already vector<double>
-            plot_args.append(i)
-            plot_event(*plot_args)
 
         for col in ("H1_flat", "H2_flat", "N1_flat", "N2_flat", "N2_nubar_flat", "nunu_solutions_flat"):
             df = df.DropColumns(col)

@@ -518,6 +518,7 @@ class NuSolutionProducer(Module):
         #include <TMatrixDSymEigen.h>
         #include <sstream>
         #include <iomanip>
+        #include <cctype>
                                   
 
         namespace nuana {
@@ -537,6 +538,11 @@ class NuSolutionProducer(Module):
                 std::cout << "[nuana] " << message << std::endl;
             }
         }
+
+        // Toggle to force-enable the MET minimizer fallback when the ellipse
+        // intersection search fails. Set to true if you want to retain the
+        // original behaviour.
+        constexpr bool kEnableMinimizerFallback = false;
 
         std::string format_tlv(const TLorentzVector& v) {
             std::ostringstream oss;
@@ -1360,7 +1366,12 @@ class NuSolutionProducer(Module):
             };
 
             doubleNeutrinoSolution()
-                : H1(3, 3), H2(3, 3), N1_(3, 3), N2_constraint_(3, 3), N2_nubar_(3, 3), usedMinimizerFallback_(false)
+                : H1(3, 3),
+                  H2(3, 3),
+                  N1_(3, 3),
+                  N2_constraint_(3, 3),
+                  N2_nubar_(3, 3),
+                  usedMinimizerFallback_(false)
             {
                 H1.Zero();
                 H2.Zero();
@@ -1376,7 +1387,18 @@ class NuSolutionProducer(Module):
                 const TLorentzVector& l2,
                 double met_x,
                 double met_y)
+                : H1(3, 3),
+                  H2(3, 3),
+                  N1_(3, 3),
+                  N2_constraint_(3, 3),
+                  N2_nubar_(3, 3),
+                  usedMinimizerFallback_(false)
             {
+                H1.Zero();
+                H2.Zero();
+                N1_.Zero();
+                N2_constraint_.Zero();
+                N2_nubar_.Zero();
                 const double mW = 80.385; // W mass in GeV
                 const double mT = 172.5;  // Top mass in GeV
 
@@ -1455,7 +1477,7 @@ class NuSolutionProducer(Module):
                         }
                     }
 
-                    if (result.solutions.empty()) {
+                    if (result.solutions.empty() && kEnableMinimizerFallback) {
                         if (debug_enabled()) {
                             debug_log("doubleNeutrinoSolution::try_pairing: no direct intersections, invoking minimizer fallback.");
                         }
@@ -1552,6 +1574,8 @@ class NuSolutionProducer(Module):
                         } else {
                             debug_log("doubleNeutrinoSolution::try_pairing: failed to create Minuit2 minimizer instance.");
                         }
+                    } else if (result.solutions.empty() && debug_enabled()) {
+                        debug_log("doubleNeutrinoSolution::try_pairing: minimizer fallback disabled, leaving solution list empty.");
                     }
 
                     if (!result.solutions.empty()) {

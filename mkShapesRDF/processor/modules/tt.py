@@ -30,7 +30,7 @@ def flat_to_matrix_3x3(flat):
 
 
 def build_h_perp_from_h(h_matrix):
-    """Construct the H_perp matrix from the full H matrix."""
+    """Construct the H⊥ matrix from the full 3×3 H matrix."""
 
     h_matrix = np.asarray(h_matrix, dtype=float)
     if h_matrix.shape != (3, 3):
@@ -40,6 +40,134 @@ def build_h_perp_from_h(h_matrix):
     h_perp[:2, :] = h_matrix[:2, :]
     h_perp[2, 2] = 1.0
     return h_perp
+
+
+def matrix_from_flat(flat):
+    """Return a 3×3 matrix from a flattened vector, filtering sentinels."""
+
+    try:
+        mat = flat_to_matrix_3x3(flat)
+    except ValueError:
+        return None
+
+    if not np.all(np.isfinite(mat)):
+        return None
+
+    if np.allclose(mat, mat.flat[0]) and np.isclose(mat.flat[0], -9999.0):
+        return None
+
+    return mat
+
+
+def ellipse_points_from_h(h_matrix, num_points=361):
+    """Sample points along an ellipse described by the 3×3 H matrix."""
+
+    if h_matrix is None:
+        return None
+
+    h_matrix = np.asarray(h_matrix, dtype=float)
+    if h_matrix.shape != (3, 3):
+        return None
+
+    h_perp = build_h_perp_from_h(h_matrix)
+    if not np.all(np.isfinite(h_perp)):
+        return None
+
+    angles = np.linspace(0.0, 2.0 * math.pi, num=num_points)
+    circle = np.vstack((np.cos(angles), np.sin(angles), np.ones_like(angles)))
+    points = h_perp @ circle
+    points = points[:2].T
+
+    if points.size == 0 or not np.all(np.isfinite(points)):
+        return None
+
+    return points
+
+
+def ellipse_points_from_conic(conic_matrix, num_points=361):
+    """Sample points along a conic ellipse encoded as a 3×3 homogeneous matrix."""
+
+    if conic_matrix is None:
+        return None
+
+    conic_matrix = np.asarray(conic_matrix, dtype=float)
+    if conic_matrix.shape != (3, 3):
+        return None
+
+    A = 0.5 * (conic_matrix[:2, :2] + conic_matrix[:2, :2].T)
+    b = 0.5 * (conic_matrix[:2, 2] + conic_matrix[2, :2])
+    c = conic_matrix[2, 2]
+
+    if not np.all(np.isfinite(A)) or not np.all(np.isfinite(b)) or not np.isfinite(c):
+        return None
+
+    try:
+        eigvals, eigvecs = np.linalg.eigh(A)
+    except np.linalg.LinAlgError:
+        return None
+
+    if not np.all(np.isfinite(eigvals)):
+        return None
+
+    tol = 1e-9
+
+    if np.all(eigvals < 0):
+        A = -A
+        b = -b
+        c = -c
+        eigvals = -eigvals
+
+    if np.any(eigvals <= tol):
+        if np.any(eigvals < -tol):
+            return None
+        eigvals = np.clip(eigvals, tol, None)
+
+    try:
+        center = -np.linalg.solve(A, b)
+    except np.linalg.LinAlgError:
+        return None
+
+    scale = -float(b.dot(center)) - float(c)
+    if not np.isfinite(scale):
+        return None
+    if scale <= tol:
+        if scale < -tol:
+            return None
+        scale = abs(scale)
+
+    ratio = scale / eigvals
+    if np.any(ratio <= tol):
+        if np.any(ratio < -tol):
+            return None
+        ratio = np.clip(ratio, tol, None)
+
+    radii = np.sqrt(ratio)
+    if not np.all(np.isfinite(radii)):
+        return None
+
+    angles = np.linspace(0.0, 2.0 * math.pi, num=num_points)
+    circle = np.vstack((np.cos(angles), np.sin(angles)))
+    scaled = radii[:, np.newaxis] * circle
+    points = eigvecs @ scaled
+    points = (points.T + center).astype(float)
+
+    if not np.all(np.isfinite(points)):
+        return None
+
+    return points
+
+
+def sample_ellipse_points(primary_matrix, fallback_matrix=None, num_points=361):
+    """Return ellipse samples, trying the primary conic matrix then an optional fallback."""
+
+    points = ellipse_points_from_conic(primary_matrix, num_points=num_points)
+    if points is not None and len(points) > 0:
+        return points
+
+    if fallback_matrix is not None:
+        return ellipse_points_from_h(fallback_matrix, num_points=num_points)
+
+    return None
 
 def plot_event(
     nu1_px,
@@ -60,6 +188,7 @@ def plot_event(
     H2_flat,
     N1_flat,
     N2_flat,
+    nunu_solutions_flat,
     event_idx,
     output_dir: Optional[str] = None,
 ):
@@ -97,42 +226,38 @@ def plot_event(
     extents_x = [abs(nu1_px), abs(nu2_px), abs(met_x), abs(l1_pt_x), abs(l2_pt_x), abs(b1_pt_x), abs(b2_pt_x)]
     extents_y = [abs(nu1_py), abs(nu2_py), abs(met_y), abs(l1_pt_y), abs(l2_pt_y), abs(b1_pt_y), abs(b2_pt_y)]
 
-    try:
-        H1 = flat_to_matrix_3x3(H1_flat)
-        H2 = flat_to_matrix_3x3(H2_flat)
-    except ValueError:
-        H1 = None
-        H2 = None
+    H1 = matrix_from_flat(H1_flat)
+    H2 = matrix_from_flat(H2_flat)
+    N1 = matrix_from_flat(N1_flat)
+    N2 = matrix_from_flat(N2_flat)
 
-    def draw_parametric_ellipse(h_matrix, label, color, transform=None):
-        if h_matrix is None:
+    def draw_conic(matrix, label, color, transform=None, plot_kwargs=None, fallback=None):
+        pts = sample_ellipse_points(matrix, fallback_matrix=fallback)
+        if pts is None or len(pts) == 0:
             return
 
-        h_perp = build_h_perp_from_h(h_matrix)
-        if not np.all(np.isfinite(h_perp)):
-            return
+        if transform is not None:
+            pts = np.array([transform(pt) for pt in pts if np.all(np.isfinite(pt))])
+            if pts.size == 0:
+                return
 
-        thetas = np.linspace(0.0, 2.0 * math.pi, num=361)
-        points = []
-        for theta in thetas:
-            vec = np.array([math.cos(theta), math.sin(theta), 1.0])
-            xy = h_perp.dot(vec)[:2]
-            if transform is not None:
-                xy = transform(xy)
-            if not np.all(np.isfinite(xy)):
-                continue
-            points.append(xy)
-
-        if not points:
-            return
-
-        pts = np.array(points)
-        ax.plot(pts[:, 0], pts[:, 1], color=color, alpha=0.8, label=label)
+        plot_args = {"color": color, "alpha": 0.8, "label": label}
+        if plot_kwargs:
+            plot_args.update(plot_kwargs)
+        ax.plot(pts[:, 0], pts[:, 1], **plot_args)
         extents_x.extend(np.abs(pts[:, 0]))
         extents_y.extend(np.abs(pts[:, 1]))
 
-    draw_parametric_ellipse(H1, "N₁ ellipse", "navy")
-    draw_parametric_ellipse(H2,"N₂ ellipse","darkorange",transform=lambda xy: np.array([met_x - xy[0], met_y - xy[1]]))
+    draw_conic(N1, "N₁ ellipse", "navy", fallback=H1)
+    draw_conic(N2, "N₂ ellipse", "darkorange", fallback=H2)
+    draw_conic(
+        N2,
+        "Constraint ellipse",
+        "darkorange",
+        transform=lambda xy: np.array([met_x - xy[0], met_y - xy[1]]),
+        plot_kwargs={"linestyle": "--", "alpha": 0.9},
+        fallback=H2,
+    )
 
     # Formatting
     ax.set_xlabel("pT_x (GeV)")
@@ -153,6 +278,222 @@ def plot_event(
 
     os.makedirs(output_dir, exist_ok=True)
     fig.savefig(f"{output_dir}/event_{event_idx}_neutrino_solutions.png")
+    plt.close(fig)
+
+    plot_ttbar_system(
+        nu1_px,
+        nu1_py,
+        nu2_px,
+        nu2_py,
+        met_x,
+        met_y,
+        N1,
+        N2,
+        H1,
+        H2,
+        nunu_solutions_flat,
+        event_idx,
+        os.path.join(output_dir, "ttbar_system"),
+    )
+
+
+def plot_ttbar_system(
+    nu1_px,
+    nu1_py,
+    nu2_px,
+    nu2_py,
+    met_x,
+    met_y,
+    N1_matrix,
+    N2_matrix,
+    H1_matrix,
+    H2_matrix,
+    nunu_solutions_flat,
+    event_idx,
+    output_dir: Optional[str] = None,
+):
+
+    if output_dir is None:
+        output_dir = os.environ.get("NU_SOLUTION_TTBAR_PLOT_DIR")
+    if not output_dir:
+        return
+
+    fig, ax = plt.subplots(figsize=(8, 8))
+
+    extents_x = []
+    extents_y = []
+
+    nu_pts = sample_ellipse_points(N1_matrix, fallback_matrix=H1_matrix)
+    if nu_pts is not None and len(nu_pts) > 0:
+        ax.plot(nu_pts[:, 0], nu_pts[:, 1], color="black", alpha=0.9, label="ν ellipse")
+        extents_x.extend(np.abs(nu_pts[:, 0]))
+        extents_y.extend(np.abs(nu_pts[:, 1]))
+
+    nubar_pts = sample_ellipse_points(N2_matrix, fallback_matrix=H2_matrix)
+    constraint_pts = None
+    constraint_nubar_pts = None
+    if nubar_pts is not None and len(nubar_pts) > 0:
+        ax.plot(nubar_pts[:, 0], nubar_pts[:, 1], color="dimgray", alpha=0.9, label="\u03bd̄ ellipse")
+        extents_x.extend(np.abs(nubar_pts[:, 0]))
+        extents_y.extend(np.abs(nubar_pts[:, 1]))
+
+        transformed = np.column_stack((met_x - nubar_pts[:, 0], met_y - nubar_pts[:, 1]))
+        mask = np.all(np.isfinite(transformed), axis=1)
+        if np.any(mask):
+            constraint_pts = transformed[mask]
+            constraint_nubar_pts = nubar_pts[mask]
+            ax.plot(
+                constraint_pts[:, 0],
+                constraint_pts[:, 1],
+                color="black",
+                linestyle="--",
+                alpha=0.9,
+                label="Constraint from \u03bd̄",
+            )
+            extents_x.extend(np.abs(constraint_pts[:, 0]))
+            extents_y.extend(np.abs(constraint_pts[:, 1]))
+
+    # Momentum arrows
+    ax.arrow(0, 0, nu1_px, nu1_py, color="black", head_width=2.0, length_includes_head=True, alpha=0.8)
+    ax.arrow(0, 0, nu2_px, nu2_py, color="gray", head_width=2.0, length_includes_head=True, alpha=0.8)
+
+    ax.plot([], [], color="black", label="ν momentum")
+    ax.plot([], [], color="gray", label="\u03bd̄ momentum")
+
+    extents_x.extend([abs(nu1_px), abs(nu2_px), abs(met_x)])
+    extents_y.extend([abs(nu1_py), abs(nu2_py), abs(met_y)])
+
+    # Mark MET and neutrino sum hypothesis
+    ax.scatter([met_x], [met_y], marker="x", color="red", s=80, label="MET (×)")
+
+    best_sum_x = nu1_px + nu2_px
+    best_sum_y = nu1_py + nu2_py
+    if math.isfinite(best_sum_x) and math.isfinite(best_sum_y):
+        ax.scatter([best_sum_x], [best_sum_y], marker="o", facecolors="none", edgecolors="red", s=80, label="ν+\u03bd̄ (◦)")
+        extents_x.append(abs(best_sum_x))
+        extents_y.append(abs(best_sum_y))
+
+    # Plot solution pairs
+    marker_cycle = ["o", "s", "^", "D", "P", "X", "v", "*"]
+    nunu_pairs = np.empty((0, 4))
+    if nunu_solutions_flat is not None:
+        flat = np.asarray(nunu_solutions_flat, dtype=float)
+        if flat.size % 4 == 0:
+            nunu_pairs = flat.reshape((-1, 4))
+
+    for idx, (sol_nu1_x, sol_nu1_y, sol_nu2_x, sol_nu2_y) in enumerate(nunu_pairs):
+        marker = marker_cycle[idx % len(marker_cycle)]
+        ax.scatter(
+            [sol_nu1_x],
+            [sol_nu1_y],
+            marker=marker,
+            color="black",
+            s=90,
+            label=f"Solution {idx+1} (ν)" if idx == 0 else None,
+        )
+        ax.scatter(
+            [sol_nu2_x],
+            [sol_nu2_y],
+            marker=marker,
+            color="gray",
+            s=90,
+            label=f"Solution {idx+1} (\u03bd̄)" if idx == 0 else None,
+        )
+
+        transformed_x = met_x - sol_nu2_x
+        transformed_y = met_y - sol_nu2_y
+        ax.scatter(
+            [transformed_x],
+            [transformed_y],
+            marker=marker,
+            facecolors="none",
+            edgecolors="black",
+            s=120,
+            label="Intersection" if idx == 0 else None,
+        )
+
+        extents_x.extend([abs(sol_nu1_x), abs(sol_nu2_x), abs(transformed_x)])
+        extents_y.extend([abs(sol_nu1_y), abs(sol_nu2_y), abs(transformed_y)])
+
+    if nunu_pairs.size == 0 and nu_pts is not None and constraint_pts is not None:
+        try:
+            diffs = nu_pts[:, np.newaxis, :] - constraint_pts[np.newaxis, :, :]
+            distances = np.linalg.norm(diffs, axis=2)
+            min_flat = np.argmin(distances)
+            i, j = divmod(int(min_flat), distances.shape[1])
+        except (ValueError, TypeError):
+            i = j = None
+
+        if i is not None and j is not None:
+            best_nu = nu_pts[i]
+            best_constraint = constraint_pts[j]
+            best_nubar = None
+            if constraint_nubar_pts is not None and len(constraint_nubar_pts) > j:
+                best_nubar = constraint_nubar_pts[j]
+
+            marker = marker_cycle[0]
+            ax.scatter(
+                [best_nu[0]],
+                [best_nu[1]],
+                marker=marker,
+                color="black",
+                s=90,
+                label="Closest ν",
+            )
+            if best_nubar is not None:
+                ax.scatter(
+                    [best_nubar[0]],
+                    [best_nubar[1]],
+                    marker=marker,
+                    color="gray",
+                    s=90,
+                    label="Closest \u03bd̄",
+                )
+            ax.scatter(
+                [best_constraint[0]],
+                [best_constraint[1]],
+                marker=marker,
+                facecolors="none",
+                edgecolors="black",
+                s=120,
+                label="Closest constraint",
+            )
+
+            ax.plot(
+                [best_nu[0], best_constraint[0]],
+                [best_nu[1], best_constraint[1]],
+                color="black",
+                linestyle=":",
+                linewidth=1.0,
+                alpha=0.7,
+                label="Closest separation",
+            )
+
+            extents_x.extend(
+                [abs(best_nu[0]), abs(best_constraint[0])] + ([abs(best_nubar[0])] if best_nubar is not None else [])
+            )
+            extents_y.extend(
+                [abs(best_nu[1]), abs(best_constraint[1])] + ([abs(best_nubar[1])] if best_nubar is not None else [])
+            )
+
+    ax.set_xlabel("pT_x (GeV)")
+    ax.set_ylabel("pT_y (GeV)")
+    ax.set_title(f"Event {event_idx}: t\u0304t system constraints")
+    ax.axhline(0, color="black", lw=0.5, ls="--")
+    ax.axvline(0, color="black", lw=0.5, ls="--")
+
+    if extents_x and extents_y:
+        limit = max(max(extents_x), max(extents_y))
+        if math.isfinite(limit) and limit > 0:
+            ax.set_xlim(-1.2 * limit, 1.2 * limit)
+            ax.set_ylim(-1.2 * limit, 1.2 * limit)
+
+    ax.set_aspect("equal")
+    ax.grid(True)
+    ax.legend(loc="upper right", fontsize="small", ncol=2)
+
+    os.makedirs(output_dir, exist_ok=True)
+    fig.savefig(f"{output_dir}/event_{event_idx}_ttbar_system.png")
     plt.close(fig)
 
 
@@ -1074,11 +1415,12 @@ class NuSolutionProducer(Module):
                     V0(2, 2) = 0.0;
 
                     TMatrixD S = V0 - UnitCircle();
+                    TMatrixD ST(TMatrixD::kTransposed, S);
 
                     TMatrixD N1 = ss1.getN();
                     TMatrixD N2 = ss2.getN();
 
-                    TMatrixD n2 = S.T() * N2 * S;
+                    TMatrixD n2 = ST * N2 * S;
 
                     result.N1.ResizeTo(N1.GetNrows(), N1.GetNcols());
                     result.N2.ResizeTo(n2.GetNrows(), n2.GetNcols());
@@ -1096,9 +1438,16 @@ class NuSolutionProducer(Module):
                         TVectorD nu1 = sol;
                         TVectorD nu2 = S * sol;
 
+                        double w1 = (nu1.GetNrows() > 2) ? nu1(2) : 1.0;
+                        double w2 = (nu2.GetNrows() > 2) ? nu2(2) : 1.0;
+
+                        if (!std::isfinite(w1) || !std::isfinite(w2) || std::abs(w1) <= 1e-12 || std::abs(w2) <= 1e-12) {
+                            continue;
+                        }
+
                         NuPair pair;
-                        pair.first = {nu1(0), nu1(1)};
-                        pair.second = {nu2(0), nu2(1)};
+                        pair.first = {nu1(0) / w1, nu1(1) / w1};
+                        pair.second = {nu2(0) / w2, nu2(1) / w2};
 
                         if (isFinitePair(pair)) {
                             result.solutions.push_back(pair);
@@ -1208,7 +1557,43 @@ class NuSolutionProducer(Module):
                         }
                     }
 
-                    if (debug_enabled()) {
+                    if (!result.solutions.empty()) {
+                        auto pairResidualSq = [&](const NuPair& pair) {
+                            if (!std::isfinite(pair.first[0]) || !std::isfinite(pair.first[1]) ||
+                                !std::isfinite(pair.second[0]) || !std::isfinite(pair.second[1])) {
+                                return std::numeric_limits<double>::infinity();
+                            }
+                            double dx = (pair.first[0] + pair.second[0]) - met_x;
+                            double dy = (pair.first[1] + pair.second[1]) - met_y;
+                            double res = dx * dx + dy * dy;
+                            return std::isfinite(res) ? res : std::numeric_limits<double>::infinity();
+                        };
+
+                        std::stable_sort(
+                            result.solutions.begin(),
+                            result.solutions.end(),
+                            [&](const NuPair& a, const NuPair& b) {
+                                return pairResidualSq(a) < pairResidualSq(b);
+                            }
+                        );
+
+                        if (debug_enabled()) {
+                            const auto& best = result.solutions.front();
+                            double best_res = pairResidualSq(best);
+                            debug_log(
+                                "doubleNeutrinoSolution::try_pairing: best MET residual squared=" +
+                                std::to_string(best_res) +
+                                ", nu1=" + format_array2(best.first) +
+                                ", nu2=" + format_array2(best.second)
+                            );
+                        }
+                    } else if (debug_enabled()) {
+                        debug_log("doubleNeutrinoSolution::try_pairing: returning " +
+                                  std::to_string(result.solutions.size()) + " solutions" +
+                                  (result.usedMinimizerFallback ? " (fallback used)" : ""));
+                    }
+
+                    if (debug_enabled() && !result.solutions.empty()) {
                         debug_log("doubleNeutrinoSolution::try_pairing: returning " +
                                   std::to_string(result.solutions.size()) + " solutions" +
                                   (result.usedMinimizerFallback ? " (fallback used)" : ""));
@@ -1307,6 +1692,18 @@ class NuSolutionProducer(Module):
             }
 
             bool usedMinimizerFallback() const { return usedMinimizerFallback_; }
+
+            std::vector<double> allSolutionsFlat() const {
+                std::vector<double> flat;
+                flat.reserve(nunu_s.size() * 4);
+                for (const auto& pair : nunu_s) {
+                    flat.push_back(pair.first[0]);
+                    flat.push_back(pair.first[1]);
+                    flat.push_back(pair.second[0]);
+                    flat.push_back(pair.second[1]);
+                }
+                return flat;
+            }
 
         private:
             TMatrixD H1, H2; // store the ellipse matrices of the selected pairing
@@ -1538,6 +1935,11 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
             "pass_bjets ? dnsol.usedMinimizerFallback() : false",
         )
 
+        df = df.Define(
+            "nunu_solutions_flat",
+            "pass_bjets ? dnsol.allSolutionsFlat() : std::vector<double>()",
+        )
+
         df = df.Define("ttbarReco_success", "pass_bjets && dnsol.hasValidSolution()")
 
         df = df.Define(
@@ -1597,7 +1999,7 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
 
         plot_columns_float = [ "nu1_px", "nu1_py", "nu2_px", "nu2_py", "met_x", "met_y", "l1_pt_x", "l1_pt_y", "l2_pt_x", "l2_pt_y", "b1_pt_x", "b1_pt_y", "b2_pt_x", "b2_pt_y" ]
 
-        plot_columns_vector = ["H1_flat", "H2_flat", "N1_flat", "N2_flat"]
+        plot_columns_vector = ["H1_flat", "H2_flat", "N1_flat", "N2_flat", "nunu_solutions_flat"]
 
         data_cache = {}
 
@@ -1629,7 +2031,7 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
             plot_args.append(i)
             plot_event(*plot_args)
 
-        for col in ("H1_flat", "H2_flat", "N1_flat", "N2_flat"):
+        for col in ("H1_flat", "H2_flat", "N1_flat", "N2_flat", "nunu_solutions_flat"):
             df = df.DropColumns(col)
 
         # Return the final dataframe or continue processing

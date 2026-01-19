@@ -1082,7 +1082,7 @@ std::vector<int> get_bjet_indices(const RVec<Float_t>& Jet_btagDeepFlavB,
         # MET residual (MET that can't be explained by neutrino momenta)
         df = df.Define(
             "pdark",
-            "pass_bjets ? ((met_x - nu1_px - nu2_px)*(met_x - nu1_px - nu2_px) + (met_y - nu1_py - nu2_py)*(met_y - nu1_py - nu2_py)) : -9999.0",
+            "pass_bjets ? sqrt(((met_x - nu1_px - nu2_px)*(met_x - nu1_px - nu2_px) + (met_y - nu1_py - nu2_py)*(met_y - nu1_py - nu2_py)) : -9999.0",
         );
 
         # Drop intermediate helper columns to keep the dataframe clean

@@ -235,7 +235,7 @@ xs_db['TTDMsimpSpin0_ps_mphi-500'] = ["xsec=0.00687", "kfact=1.000", "ref=G"]
 xs_db['TTDMsimpSpin0_ps_mphi-600'] = ["xsec=0.003735", "kfact=1.000", "ref=G"]
 xs_db['TTDMsimpSpin0_ps_mphi-700'] = ["xsec=0.002241", "kfact=1.000", "ref=G"]
 xs_db['TTDMsimpSpin0_ps_mphi-800'] = ["xsec=0.001406", "kfact=1.000", "ref=G"]
-xs_db['TTDMsimpSpin0_ps_mphi-1000'] = ["xsec=6.419e-05", "kfact=1.000", "ref=G"]
+xs_db['TTDMsimpSpin0_ps_mphi-1000'] = ["xsec=0.000064", "kfact=1.000", "ref=G"]
 
 # ttDM inclusive scalar
 xs_db['TTDMsimpSpin0_s_mphi-10'] = ["xsec=21.68", "kfact=1.000", "ref=G"]
@@ -259,15 +259,15 @@ xs_db['TTto2LDMsimpSpin0_ps_mphi-50'] = ["xsec=0.0392", "kfact=1.000", "ref=G"]
 xs_db['TTto2LDMsimpSpin0_ps_mphi-100'] = ["xsec=0.02461", "kfact=1.000", "ref=G"]
 xs_db['TTto2LDMsimpSpin0_ps_mphi-150'] = ["xsec=0.01622", "kfact=1.000", "ref=G"]
 xs_db['TTto2LDMsimpSpin0_ps_mphi-200'] = ["xsec=0.01137", "kfact=1.000", "ref=G"]
-#xs_db['TTto2LDMsimpSpin0_ps_mphi-250'] = ["xsec=0.01137", "kfact=1.000", "ref=G"]
+xs_db['TTto2LDMsimpSpin0_ps_mphi-250'] = ["xsec=0.007778", "kfact=1.000", "ref=G"]
 xs_db['TTto2LDMsimpSpin0_ps_mphi-300'] = ["xsec=0.005589", "kfact=1.000", "ref=G"]
 xs_db['TTto2LDMsimpSpin0_ps_mphi-350'] = ["xsec=0.003152", "kfact=1.000", "ref=G"]
 xs_db['TTto2LDMsimpSpin0_ps_mphi-400'] = ["xsec=0.001648", "kfact=1.000", "ref=G"]
 xs_db['TTto2LDMsimpSpin0_ps_mphi-500'] = ["xsec=0.000774", "kfact=1.000", "ref=G"]
 xs_db['TTto2LDMsimpSpin0_ps_mphi-600'] = ["xsec=0.0004187", "kfact=1.000", "ref=G"]
-#xs_db['TTto2LDMsimpSpin0_ps_mphi-700'] = ["xsec=0.01137", "kfact=1.000", "ref=G"]
+xs_db['TTto2LDMsimpSpin0_ps_mphi-700'] = ["xsec=0.0002469", "kfact=1.000", "ref=G"]
 #xs_db['TTto2LDMsimpSpin0_ps_mphi-800'] = ["xsec=0.01137", "kfact=1.000", "ref=G"]
-xs_db['TTto2LDMsimpSpin0_ps_mphi-1000'] = ["xsec=6.488e-05", "kfact=1.000", "ref=G"]
+xs_db['TTto2LDMsimpSpin0_ps_mphi-1000'] = ["xsec=0.000065", "kfact=1.000", "ref=G"]
 
 # ttDM dilepton scalar
 #xs_db['TTto2LDMsimpSpin0_s_mphi-10'] = ["xsec=0.3894", "kfact=1.000", "ref=G"]
@@ -281,9 +281,9 @@ xs_db['TTto2LDMsimpSpin0_s_mphi-350'] = ["xsec=0.002694", "kfact=1.000", "ref=G"
 #xs_db['TTto2LDMsimpSpin0_s_mphi-400'] = ["xsec=0.002694", "kfact=1.000", "ref=G"]
 xs_db['TTto2LDMsimpSpin0_s_mphi-500'] = ["xsec=0.0007309", "kfact=1.000", "ref=G"]
 xs_db['TTto2LDMsimpSpin0_s_mphi-600'] = ["xsec=0.0003906", "kfact=1.000", "ref=G"]
-#xs_db['TTto2LDMsimpSpin0_s_mphi-700'] = ["xsec=0.0003906", "kfact=1.000", "ref=G"]
+#xs_db['TTto2LDMsimpSpin0_s_mphi-700'] = ["xsec=0.0002469", "kfact=1.000", "ref=G"]
 xs_db['TTto2LDMsimpSpin0_s_mphi-800'] = ["xsec=0.0001414", "kfact=1.000", "ref=G"]
-xs_db['TTto2LDMsimpSpin0_s_mphi-1000'] = ["xsec=6.077e-05", "kfact=1.000", "ref=G"]
+xs_db['TTto2LDMsimpSpin0_s_mphi-1000'] = ["xsec=0.00006", "kfact=1.000", "ref=G"]
 
 # THIS IS OLD, AND COMES FROM RUN 2 UL!!
 #

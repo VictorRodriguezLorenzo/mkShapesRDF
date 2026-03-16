@@ -121,21 +121,37 @@ class RunAnalysis:
         return tnom
 
     @staticmethod
-    def getNuisanceFiles(nuisance, files):
+    def getNuisanceFiles(nuisance, files, skey=None):
         """Searches in the provided nuisance folder for the files with the same name of the nominal files
-
+    
         Args:
             nuisance (dict): dict with the nuisance information
             files (list): list of nominal files
-
+            skey (str, optional): sample name, used if folderUp/Down is a dict
+    
         Returns:
             list of list: list with the down and up varied list of files
         """
-        _files = list(map(lambda k: k.split("/")[-1], files))
-        nuisanceFilesDown = list(
-            map(lambda k: nuisance["folderDown"] + "/" + k, _files)
-        )
-        nuisanceFilesUp = list(map(lambda k: nuisance["folderUp"] + "/" + k, _files))
+        _files = [f.split("/")[-1] for f in files]
+    
+        # handle folderDown
+        if isinstance(nuisance["folderDown"], dict):
+            if skey is None:
+                raise RuntimeError("skey must be provided when folderDown is a dict")
+            folderDown = nuisance["folderDown"][skey]
+        else:
+            folderDown = nuisance["folderDown"]
+        nuisanceFilesDown = [folderDown + "/" + f for f in _files]
+    
+        # handle folderUp
+        if isinstance(nuisance["folderUp"], dict):
+            if skey is None:
+                raise RuntimeError("skey must be provided when folderUp is a dict")
+            folderUp = nuisance["folderUp"][skey]
+        else:
+            folderUp = nuisance["folderUp"]
+        nuisanceFilesUp = [folderUp + "/" + f for f in _files]
+    
         return [nuisanceFilesDown, nuisanceFilesUp]
 
     @staticmethod
@@ -254,37 +270,44 @@ class RunAnalysis:
             else:
                 print("Cannot process variable ", var, " nuisances might be faulty")
 
-        # sample here is a tuple, first el is the sampleName, second list of files,
-        # third the special weight, forth is the index of tuple for the same sample,
-        # fifth if present the dict of subsamples
         for sample in samples:
             files = sample[1]
             sampleName = sample[0]
             friendsFiles = []
             usedFolders = []
+            
             for nuisance in self.nuisances.values():
                 if sampleName not in nuisance.get("samples", {sampleName: []}):
                     continue
                 if nuisance.get("type", "") == "shape":
                     if nuisance.get("kind", "") == "suffix":
-                        if nuisance.get("folderUp", "") != "":
-                            if nuisance["folderUp"] in usedFolders:
-                                continue
-                            usedFolders.append(nuisance["folderUp"])
-
-                            friendsFiles += RunAnalysis.getNuisanceFiles(
-                                nuisance, files
+                        folderUpRaw = nuisance.get("folderUp", "")
+                        if folderUpRaw != "":
+                            # handle dict vs string
+                            folderUpPath = (
+                                folderUpRaw[sampleName]
+                                if isinstance(folderUpRaw, dict)
+                                else folderUpRaw
                             )
+                            if folderUpPath in usedFolders:
+                                continue
+                            usedFolders.append(folderUpPath)
+        
+                            # pass sampleName as skey to getNuisanceFiles
+                            friendsFiles += RunAnalysis.getNuisanceFiles(
+                                nuisance, files, skey=sampleName
+                            )
+        
             tnom = RunAnalysis.getTTreeNomAndFriends(files, friendsFiles)
-
+        
             if limit != -1:
                 df = ROOT.RDataFrame(tnom)
                 df = df.Range(limit)
             else:
-                # ROOT.EnableImplicitMT()
                 df = ROOT.RDataFrame(tnom)
+        
             if sampleName not in self.dfs.keys():
-                self.dfs[sample[0]] = {}
+                self.dfs[sampleName] = {}
             self.dfs[sampleName][sample[3]] = {
                 "df": df,
                 "ttree": tnom,
@@ -293,7 +316,7 @@ class RunAnalysis:
             self.dfs[sampleName][sample[3]]["columnNames"] = list(
                 map(lambda k: str(k), df.GetColumnNames())
             )
-
+        
         self.definedAliases = {}
 
         print("\n\nLoaded dataframes\n\n")

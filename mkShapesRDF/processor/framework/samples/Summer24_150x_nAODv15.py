@@ -301,7 +301,56 @@ Samples['WToTauNu-2Jet'] = {
     'nanoAOD' : '/WtoTauNu-2Jets_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v3/NANOAODSIM'
 }
 
-#### DY 
+Samples['WtoLNu-4Jets_MLNu-0to120_HT-40to100'] = {
+    'nanoAOD' : '/WtoLNu-4Jets_Bin-HT-40to100-MLNu-0to120_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM'
+}
+
+Samples['WtoLNu-4Jets_MLNu-0to120_HT-100to400'] = {
+    'nanoAOD' : '/WtoLNu-4Jets_Bin-HT-100to400-MLNu-0to120_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM'
+}
+
+Samples['WtoLNu-4Jets_MLNu-0to120_HT-400to800'] = {
+    'nanoAOD' : '/WtoLNu-4Jets_Bin-HT-400to800-MLNu-0to120_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM'
+}
+
+Samples['WtoLNu-4Jets_MLNu-0to120_HT-800to1500'] = {
+    'nanoAOD' : '/WtoLNu-4Jets_Bin-HT-800to1500-MLNu-0to120_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM'
+}
+
+Samples['WtoLNu-4Jets_MLNu-0to120_HT-1500to2500'] = {
+    'nanoAOD' : '/WtoLNu-4Jets_Bin-HT-1500to2500-MLNu-0to120_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM'
+}
+
+Samples['WtoLNu-4Jets_MLNu-0to120_HT-2500'] = {
+    'nanoAOD' : '/WtoLNu-4Jets_Bin-HT-2500-MLNu-0to120_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM'
+}
+
+
+Samples['WtoLNu-4Jets_MLNu-120_HT-40to100'] = {
+    'nanoAOD' : '/WtoLNu-4Jets_Bin-HT-40to100-MLNu-120_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM'
+}
+
+Samples['WtoLNu-4Jets_MLNu-120_HT-100to400'] = {
+    'nanoAOD' : '/WtoLNu-4Jets_Bin-HT-100to400-MLNu-120_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM'
+}
+
+Samples['WtoLNu-4Jets_MLNu-120_HT-400to800'] = {
+    'nanoAOD' : '/WtoLNu-4Jets_Bin-HT-400to800-MLNu-120_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM'
+}
+
+Samples['WtoLNu-4Jets_MLNu-120_HT-800to1500'] = {
+    'nanoAOD' : '/WtoLNu-4Jets_Bin-HT-800to1500-MLNu-120_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM'
+}
+
+Samples['WtoLNu-4Jets_MLNu-120_HT-1500to2500'] = {
+    'nanoAOD' : '/WtoLNu-4Jets_Bin-HT-1500to2500-MLNu-120_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM'
+}
+
+Samples['WtoLNu-4Jets_MLNu-120_HT-2500'] = {
+    'nanoAOD' : '/WtoLNu-4Jets_Bin-HT-2500-MLNu-120_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM'
+}
+
+#### DY !!!!!
 
 ## DY -> ee
 Samples['DYto2E-2Jets_MLL-10to50'] = {
@@ -379,7 +428,6 @@ Samples['ST_s-channel_minus'] = {
     'nanoAOD' :'/TbarBtoLNu-s-channel_TuneCP5_13p6TeV_powheg-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM'
 }
 
-<<<<<<< HEAD
 ### Anomalous coupling (AC/EFT) alternative signals
 ### AC ggH 
 

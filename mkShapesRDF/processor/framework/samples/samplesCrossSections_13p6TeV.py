@@ -180,6 +180,20 @@ xs_db["WToTauNu-2Jet"] = ["xsec=21132.0", "kfact=1.000", "ref=A"]
 xs_db["WToLNu-1Jet-LO"] = ["xsec=9084.0", "kfact=1.000", "ref=A"]
 xs_db["WToLNu-2Jet-LO"] = ["xsec=2925.0", "kfact=1.000", "ref=A"]
 
+xs_db["WtoLNu-4Jets_MLNu-0to120_HT-40to100"] = ["xsec=4254", "kfact=1.000", "ref=G"]
+xs_db["WtoLNu-4Jets_MLNu-0to120_HT-100to400"] = ["xsec=1626", "kfact=1.000", "ref=G"]
+xs_db["WtoLNu-4Jets_MLNu-0to120_HT-400to800"] = ["xsec=59.99", "kfact=1.000", "ref=G"]
+xs_db["WtoLNu-4Jets_MLNu-0to120_HT-800to1500"] = ["xsec=6.23", "kfact=1.000", "ref=G"]
+xs_db["WtoLNu-4Jets_MLNu-0to120_HT-1500to2500"] = ["xsec=0.4477", "kfact=1.000", "ref=G"]
+xs_db["WtoLNu-4Jets_MLNu-0to120_HT-2500"] = ["xsec=0.03075", "kfact=1.000", "ref=G"]
+
+xs_db["WtoLNu-4Jets_MLNu-120_HT-40to100"] = ["xsec=20.56", "kfact=1.000", "ref=G"]
+xs_db["WtoLNu-4Jets_MLNu-120_HT-100to400"] = ["xsec=10.19", "kfact=1.000", "ref=G"]
+xs_db["WtoLNu-4Jets_MLNu-120_HT-400to800"] = ["xsec=0.5239", "kfact=1.000", "ref=G"]
+xs_db["WtoLNu-4Jets_MLNu-120_HT-800to1500"] = ["xsec=0.06255", "kfact=1.000", "ref=G"]
+xs_db["WtoLNu-4Jets_MLNu-120_HT-1500to2500"] = ["xsec=0.005066", "kfact=1.000", "ref=G"]
+xs_db["WtoLNu-4Jets_MLNu-120_HT-2500"] = ["xsec=0.0003788", "kfact=1.000", "ref=G"]
+
 # DY
 xs_db["DYJetsToLL_M-50-LO"]      = ["xsec=6275.1",  "kfact=1.000", "ref=A"] # 2091.7 * 3
 xs_db["DYto2L-2Jets_MLL-50"]     = ["xsec=6275.1",  "kfact=1.000", "ref=A"] # 2091.7 * 3
@@ -244,7 +258,6 @@ xs_db['QCD_PT-80to170_bcToE']  = ["xsec=74510.0",   "kfact=1.000", "ref=G"]
 xs_db['QCD_PT-170to250_bcToE'] = ["xsec=3898.0",    "kfact=1.000", "ref=G"]
 xs_db['QCD_PT-250toInf_bcToE'] = ["xsec=963.4",     "kfact=1.000", "ref=G"]
 
-<<<<<<< HEAD
 ### AC ggH (dummy values)
 xs_db['H0PM_ToWWTo2L2Nu']    = ["xsec=1.00",     "kfact=1.00", "ref=X"]
 xs_db['H0PH_ToWWTo2L2Nu']    = ["xsec=1.00",     "kfact=1.00", "ref=X"] 

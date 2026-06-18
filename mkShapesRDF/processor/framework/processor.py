@@ -298,10 +298,64 @@ class Processor:
 
         import uproot
         import awkward
+
         for snapshot in snapshots:
             snapshot(df.df)
 
+        def run_checked(cmd, retries=3):
+            import shlex
+            import time
+
+            for attempt in range(1, retries + 1):
+                print("+ " + " ".join(shlex.quote(str(x)) for x in cmd))
+
+                proc = subprocess.run(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                )
+
+                if proc.stdout:
+                    print(proc.stdout)
+                if proc.stderr:
+                    print(proc.stderr, file=sys.stderr)
+
+                if proc.returncode == 0:
+                    return
+
+                print(
+                    f"Command failed, attempt {attempt}/{retries}, exit code {proc.returncode}",
+                    file=sys.stderr,
+                )
+                time.sleep(10 * attempt)
+
+            raise RuntimeError(
+                "Command failed after "
+                + str(retries)
+                + " attempts: "
+                + " ".join(str(x) for x in cmd)
+            )
+
+        def check_root_file(finalFile):
+            print(f"Checking local output file: {finalFile}")
+
+            if not os.path.exists(finalFile):
+                raise RuntimeError(f"Local output file does not exist: {finalFile}")
+
+            f = uproot.open(finalFile)
+            branches = [k.name for k in f["Events"].branches]
+
+            if len(branches) == 0:
+                f.close()
+                raise RuntimeError(f"No branches found in Events tree: {finalFile}")
+
+            print(f["Events"][branches[0]].array(entry_stop=10))
+            f.close()
+
         finalFiles = []
+        outputDestinations = []
+
         for destination in snapshot_destinations:
             copyFromInputFiles = destination[1]
             outputFilename = destination[0]
@@ -312,31 +366,26 @@ class Processor:
             outputFolderPath = destination[2]
             outputFilenameEOS = destination[3]
 
-            # Create output folder
-            proc = subprocess.Popen(f"mkdir -p {outputFolderPath}", shell=True)
-            """
-        )
-        # This is needed at KIT since the eosDir is not a real common directory
-        if site == 'kit':
-            self.fPy += """    proc = subprocess.Popen(f"chmod -R a+rwx """+self.eosDir+"""", shell=True)"""
+            if not os.path.exists(outputFilename):
+                raise RuntimeError(f"Local output file does not exist: {outputFilename}")
 
-        self.fPy += dedent(
-                """
-            proc.wait()
+            # Keep the local file for integrity check.
+            # Do not append the /eos path here.
+            finalFiles.append(outputFilename)
 
-            # Copy output file in output folder
-            proc = subprocess.Popen(f"cp {outputFilename} {outputFolderPath}/{outputFilenameEOS}", shell=True)
-            proc.wait()
-            finalFiles.append(f'{outputFolderPath}/{outputFilenameEOS}')
+            # Store destination info for the final copy after the integrity check.
+            outputDestinations.append(
+                [
+                    outputFilename,
+                    outputFolderPath,
+                    outputFilenameEOS,
+                ]
+            )
 
-            # Remove the output file from local
-            proc = subprocess.Popen(f"rm {outputFilename}", shell=True)
-            proc.wait()
-            
         def sciNot(value):
             # scientific notation
             return "{:.3e}".format(value)
-        
+
         data = []
         reservedValuesNames = ["snapshot", "variables"]
         for val in values:
@@ -353,9 +402,10 @@ class Processor:
         from tabulate import tabulate
 
         print(tabulate(data, headers=["desc.", "value"]))
-            """)
+            """
+        )
 
-        if self.inputFolder != "" and eosTmpPath!='USEDAS':
+        if self.inputFolder != "" and eosTmpPath != 'USEDAS':
             self.fPy += dedent("""
         for f in files:
             print('Removing input file', f)
@@ -366,14 +416,65 @@ class Processor:
             """)
 
         self.fPy += dedent("""
-        # check final file integrity
+        # Check local output file integrity before copying to EOS.
         for finalFile in finalFiles:
-            f = uproot.open(finalFile)
-            branches = [k.name for k in f['Events'].branches]
-            print(f['Events'][branches[0]].array(entry_stop=10))
-            f.close()
+            check_root_file(finalFile)
+
+        copiedFiles = []
+
+        # Copy checked output files to their final destination.
+        for outputFilename, outputFolderPath, outputFilenameEOS in outputDestinations:
+            outputFolderPathClean = os.path.normpath(outputFolderPath)
+
+            if outputFolderPathClean.startswith("/eos/"):
+                # In Condor, do not use mkdir/cp through /eos FUSE.
+                # Copy to EOS through XRootD instead.
+                eosTarget = f"root://eosuser.cern.ch/{outputFolderPathClean}/{outputFilenameEOS}"
+
+                run_checked([
+                    "xrdfs",
+                    "root://eosuser.cern.ch/",
+                    "mkdir",
+                    "-p",
+                    outputFolderPathClean,
+                ])
+
+                run_checked([
+                    "xrdcp",
+                    "-f",
+                    outputFilename,
+                    eosTarget,
+                ])
+
+                copiedFiles.append(eosTarget)
+                print(f"Copied to EOS: {eosTarget}")
+
+            else:
+                # Non-EOS output path: keep normal local filesystem behavior.
+                run_checked([
+                    "mkdir",
+                    "-p",
+                    outputFolderPathClean,
+                ])
+
+                localTarget = f"{outputFolderPathClean}/{outputFilenameEOS}"
+
+                run_checked([
+                    "cp",
+                    outputFilename,
+                    localTarget,
+                ])
+
+                copiedFiles.append(localTarget)
+                print(f"Copied to: {localTarget}")
+
+        # Remove local output files only after successful integrity check and copy.
+        for finalFile in finalFiles:
+            if os.path.exists(finalFile):
+                print("Removing local output file", finalFile)
+                os.remove(finalFile)
         """)
-        
+
         self.fPy = self.fPy.replace("RPLME_FW", frameworkPath)
         self.fPy = self.fPy.replace("RPLME_CMSSW", Productions[self.prodName]["cmssw"])
         if Productions[self.prodName]["isData"]:

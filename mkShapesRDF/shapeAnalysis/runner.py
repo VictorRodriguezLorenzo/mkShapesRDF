@@ -123,17 +123,14 @@ class RunAnalysis:
     @staticmethod
     def getNuisanceFiles(nuisance, files, skey=None):
         """Searches in the provided nuisance folder for the files with the same name of the nominal files
-    
         Args:
             nuisance (dict): dict with the nuisance information
             files (list): list of nominal files
             skey (str, optional): sample name, used if folderUp/Down is a dict
-    
         Returns:
             list of list: list with the down and up varied list of files
         """
         _files = [f.split("/")[-1] for f in files]
-    
         # handle folderDown
         if isinstance(nuisance["folderDown"], dict):
             if skey is None:
@@ -142,7 +139,6 @@ class RunAnalysis:
         else:
             folderDown = nuisance["folderDown"]
         nuisanceFilesDown = [folderDown + "/" + f for f in _files]
-    
         # handle folderUp
         if isinstance(nuisance["folderUp"], dict):
             if skey is None:
@@ -151,7 +147,6 @@ class RunAnalysis:
         else:
             folderUp = nuisance["folderUp"]
         nuisanceFilesUp = [folderUp + "/" + f for f in _files]
-    
         return [nuisanceFilesDown, nuisanceFilesUp]
 
     @staticmethod
@@ -275,7 +270,6 @@ class RunAnalysis:
             sampleName = sample[0]
             friendsFiles = []
             usedFolders = []
-            
             for nuisance in self.nuisances.values():
                 if sampleName not in nuisance.get("samples", {sampleName: []}):
                     continue
@@ -292,20 +286,16 @@ class RunAnalysis:
                             if folderUpPath in usedFolders:
                                 continue
                             usedFolders.append(folderUpPath)
-        
                             # pass sampleName as skey to getNuisanceFiles
                             friendsFiles += RunAnalysis.getNuisanceFiles(
                                 nuisance, files, skey=sampleName
                             )
-        
             tnom = RunAnalysis.getTTreeNomAndFriends(files, friendsFiles)
-        
             if limit != -1:
                 df = ROOT.RDataFrame(tnom)
                 df = df.Range(limit)
             else:
                 df = ROOT.RDataFrame(tnom)
-        
             if sampleName not in self.dfs.keys():
                 self.dfs[sampleName] = {}
             self.dfs[sampleName][sample[3]] = {
@@ -316,7 +306,6 @@ class RunAnalysis:
             self.dfs[sampleName][sample[3]]["columnNames"] = list(
                 map(lambda k: str(k), df.GetColumnNames())
             )
-        
         self.definedAliases = {}
 
         print("\n\nLoaded dataframes\n\n")
@@ -504,15 +493,11 @@ class RunAnalysis:
                                     baseCol
                                     not in self.dfs[sampleName][index]["usedVariables"]
                                 ):
-                                    # baseCol is never used -> useless to register variation
-                                    # print("unused variable", baseCol)
                                     continue
-                                # print(baseCol in [str(k) for k in df.GetColumnNames()])
                                 if not (
                                     baseCol in [str(k) for k in df.GetColumnNames()]
                                 ):
                                     continue
-
                                 if "bool" not in str(df.GetColumnType(baseCol)).lower():
                                     varNameDown = (
                                         baseCol
@@ -533,7 +518,7 @@ class RunAnalysis:
                                         baseCol + separator + nuisance["mapDown"]
                                     )
                                     varNameUp = baseCol + separator + nuisance["mapUp"]
-
+                            
                                 _type = df.GetColumnType(baseCol)
                                 expr = (
                                     ParseCpp.RVecExpression(_type)

@@ -97,8 +97,6 @@ Steps = {
             "l2tight",
             "leptonScale_mc",
             "l2Kin",
-            "l3Kin",
-            "l4Kin",
             "finalSnapshot_JES",
         ]
     },
@@ -128,8 +126,6 @@ Steps = {
             "formulasMC",
             "leptonScale_mc",
             "l2Kin",
-            "l3Kin",
-            "l4Kin",
             "eventStorageReduction",
             "finalSnapshot_JES",
         ]
@@ -184,8 +180,6 @@ Steps = {
             "l2tight",
             "leptonScale_mc",
             "l2Kin",
-            "l3Kin",
-            "l4Kin",
             "finalSnapshot_JES",
 	]
     },
@@ -215,8 +209,6 @@ Steps = {
             "formulasMC",
             "leptonScale_mc",
             "l2Kin",
-            "l3Kin",
-            "l4Kin",
             "eventStorageReduction",
             "finalSnapshot_JES",
         ]
@@ -271,8 +263,6 @@ Steps = {
             "l2tight",
             "leptonScale_mc",
             "l2Kin",
-            "l3Kin",
-            "l4Kin",
             "finalSnapshot_JES",
         ]
     },
@@ -303,8 +293,6 @@ Steps = {
             "JES_modules_reduced_MC",
             "leptonScale_mc",
             "l2Kin",
-            "l3Kin",
-            "l4Kin",
             "eventStorageReduction",
             "finalSnapshot_JES",
         ]
@@ -359,8 +347,6 @@ Steps = {
             "l2tight",
             "leptonScale_mc",
             "l2Kin",
-            "l3Kin",
-            "l4Kin",
             "finalSnapshot_JES",
         ]
     },
@@ -390,8 +376,6 @@ Steps = {
             "formulasMC",
             "leptonScale_mc",
             "l2Kin",
-            "l3Kin",
-            "l4Kin",
             "eventStorageReduction",
             "finalSnapshot_JES",
         ]
@@ -444,8 +428,6 @@ Steps = {
             "l2tight",
             "leptonScale_mc",
             "l2Kin",
-            "l3Kin",
-            "l4Kin",
             "finalSnapshot_JES",
         ]
     },
@@ -475,8 +457,6 @@ Steps = {
             "formulasMC",
             "leptonScale_mc",
             "l2Kin",
-            "l3Kin",
-            "l4Kin",
             "eventStorageReduction",
             "finalSnapshot_JES",
         ]
@@ -2011,6 +1991,15 @@ Steps = {
         "import": "mkShapesRDF.processor.modules.EventStorageReduction",
         "declare": "eventStorageReduction = lambda : EventStorageReduction()",
         "module": "eventStorageReduction()",
+    },
+
+    "eventStorageReduction_2l": {
+        "isChain": False,
+        "do4MC": True,
+        "do4Data": False,
+        "import": "mkShapesRDF.processor.modules.EventStorageReduction_2l",
+        "declare": "eventStorageReduction_2l = lambda : EventStorageReduction_2l()",
+        "module": "eventStorageReduction_2l()",
     },
 
     "leptonMaker": {

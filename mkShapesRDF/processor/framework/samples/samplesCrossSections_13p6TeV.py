@@ -215,6 +215,32 @@ xs_db["DYto2Tau-2Jets_MLL-50_0J"]     = ["xsec=1682.0",  "kfact=1.000", "ref=A"]
 xs_db["DYto2Tau-2Jets_MLL-50_1J"]     = ["xsec=318.1",  "kfact=1.000", "ref=A"]
 xs_db["DYto2Tau-2Jets_MLL-50_2J"]     = ["xsec=120.6",  "kfact=1.000", "ref=A"]
 
+#### DY MLL + HT binned
+
+xs_db["DYto2L-4Jets_MLL-4to50_HT-40to70"]       = ["xsec=911.4", "kfact=1.000", "ref=G"]
+xs_db["DYto2L-4Jets_MLL-4to50_HT-70to100"]      = ["xsec=346.6", "kfact=1.000", "ref=G"]
+xs_db["DYto2L-4Jets_MLL-4to50_HT-100to400"]     = ["xsec=316.8", "kfact=1.000", "ref=G"]
+xs_db["DYto2L-4Jets_MLL-4to50_HT-400to800"]     = ["xsec=5.649", "kfact=1.000", "ref=G"]
+xs_db["DYto2L-4Jets_MLL-4to50_HT-800to1500"]    = ["xsec=0.4204", "kfact=1.000", "ref=G"]
+xs_db["DYto2L-4Jets_MLL-4to50_HT-1500to2500"]   = ["xsec=0.02079", "kfact=1.000", "ref=G"]
+xs_db["DYto2L-4Jets_MLL-4to50_HT-2500"]         = ["xsec=0.00107", "kfact=1.000", "ref=G"]
+
+xs_db["DYto2L-4Jets_MLL-50to120_HT-40to70"]     = ["xsec=316.7", "kfact=1.000", "ref=G"]
+xs_db["DYto2L-4Jets_MLL-50to120_HT-70to100"]    = ["xsec=140.1", "kfact=1.000", "ref=G"]
+xs_db["DYto2L-4Jets_MLL-50to120_HT-100to400"]   = ["xsec=179.6", "kfact=1.000", "ref=G"]
+xs_db["DYto2L-4Jets_MLL-50to120_HT-400to800"]   = ["xsec=6.742", "kfact=1.000", "ref=G"]
+xs_db["DYto2L-4Jets_MLL-50to120_HT-800to1500"]  = ["xsec=0.693", "kfact=1.000", "ref=G"]
+xs_db["DYto2L-4Jets_MLL-50to120_HT-1500to2500"] = ["xsec=0.05047", "kfact=1.000", "ref=G"]
+xs_db["DYto2L-4Jets_MLL-50to120_HT-2500"]       = ["xsec=0.00346", "kfact=1.000", "ref=G"]
+
+xs_db["DYto2L-4Jets_MLL-120_HT-40to70"]         = ["xsec=4.6", "kfact=1.000", "ref=G"]
+xs_db["DYto2L-4Jets_MLL-120_HT-70to100"]        = ["xsec=2.205", "kfact=1.000", "ref=G"]
+xs_db["DYto2L-4Jets_MLL-120_HT-100to400"]       = ["xsec=3.352", "kfact=1.000", "ref=G"]
+xs_db["DYto2L-4Jets_MLL-120_HT-400to800"]       = ["xsec=0.1757", "kfact=1.000", "ref=G"]
+xs_db["DYto2L-4Jets_MLL-120_HT-800to1500"]      = ["xsec=0.02089", "kfact=1.000", "ref=G"]
+xs_db["DYto2L-4Jets_MLL-120_HT-1500to2500"]     = ["xsec=0.001697", "kfact=1.000", "ref=G"]
+xs_db["DYto2L-4Jets_MLL-120_HT-2500"]           = ["xsec=0.0001247", "kfact=1.000", "ref=G"]
+
 # DYG
 xs_db["DYGto2LG-1Jets_MLL-4to50_PTG-10to100"]      = ["xsec=88.17",     "kfact=1.000", "ref=G"]
 xs_db["DYGto2LG-1Jets_MLL-4to50_PTG-10to100_ext1"] = ["xsec=88.17",     "kfact=1.000", "ref=G"]

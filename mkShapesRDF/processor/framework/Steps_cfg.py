@@ -97,7 +97,7 @@ Steps = {
             "l2tight",
             "leptonScale_mc",
             "l2Kin",
-            "finalSnapshot_JES",
+            "finalSnapshot_JES_ttDM",
         ]
     },
     "MCl1loose2022v12__MCCorr2022v12JetScaling": {
@@ -180,7 +180,7 @@ Steps = {
             "l2tight",
             "leptonScale_mc",
             "l2Kin",
-            "finalSnapshot_JES",
+            "finalSnapshot_JES_ttDM",
 	]
     },
     "MCl1loose2022EEv12__MCCorr2022EEv12JetScaling": {
@@ -263,7 +263,7 @@ Steps = {
             "l2tight",
             "leptonScale_mc",
             "l2Kin",
-            "finalSnapshot_JES",
+            "finalSnapshot_JES_ttDM",
         ]
     },
     "MCl1loose2023v12__MCCorr2023v12JetScaling": {
@@ -347,7 +347,7 @@ Steps = {
             "l2tight",
             "leptonScale_mc",
             "l2Kin",
-            "finalSnapshot_JES",
+            "finalSnapshot_JES_ttDM",
         ]
     },
     "MCl1loose2023BPixv12__MCCorr2023BPixv12JetScaling": {
@@ -428,7 +428,7 @@ Steps = {
             "l2tight",
             "leptonScale_mc",
             "l2Kin",
-            "finalSnapshot_JES",
+            "finalSnapshot_JES_ttDM",
         ]
     },
     "MCl1loose2024v15__MCCorr2024v15__JERFrom23BPix": {
@@ -2523,6 +2523,19 @@ Steps = {
         "module": "snapshot()",
     },
     
+    "finalSnapshot_JES_ttDM": {
+            "isChain" : False,
+            "do4MC"   : True,
+            "do4Data" : False,
+            "import"  : "mkShapesRDF.processor.modules.Snapshot",
+            "declare" : "snapshot = lambda : Snapshot( \
+                    tmpOutputFilename=RPLME_OUTPUTFILENAMETMP+'/RPLME_OUTPUTFILENAME', \
+                    columns=['run','luminosityBlock','event','nLepton','Lepton_pt','Lepton_eta','Lepton_phi','Lepton_pdgId','Lepton_promptgenmatched','Lepton_isTightMuon_*','Lepton_isTightElectron_*','nCleanJet','CleanJet_pt','CleanJet_eta','CleanJet_phi','CleanJet_mass','CleanJet_jetIdx','Jet_btag*','Jet_hadronFlavour','pt1','pt2','mll','ptll','drll','detall','dphill','yll','PuppiMET_pt','PuppiMET_phi','dphilmet','dphilmet1','dphilmet2','dphillmet','mtw1','mtw2','mth','mTi','mR','mTe','recoil','upara','uperp','pTWW','mcoll','mcollWW','choiMass','njet','ht','vht_pt','dphijet1met','dphijet2met','dphijjmet','projtkmet','projpfmet','SFweight2l','LepCut2l__*','LepSF2l__*','XSWeight','METFilter_*','Trigger_*','TriggerSFWeight_2l*','puWeight*','topGenPt','antitopGenPt','gen_ptll','Gen_ZGstar_mass','PSWeight','LHEPdfWeight','LHEScaleWeight','nLHEScaleWeight'], \
+        eosPath='RPLME_EOSPATH', outputFilename='RPLME_OUTPUTFILENAME', \
+        includeVariations=True, splitVariations=True, storeNominals=True)",
+        "module": "snapshot()",
+    },
+
     "finalSnapshot_JES": {
         "isChain" : False,
         "do4MC"   : True,

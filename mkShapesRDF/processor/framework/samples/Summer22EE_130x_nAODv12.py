@@ -693,9 +693,11 @@ Samples['ST_s-channel_minus'] = {
     'nanoAOD' :'/TbarBtoLminusNuB-s-channel-4FS_TuneCP5_13p6TeV_amcatnlo-pythia8/Run3Summer22EENanoAODv12-130X_mcRun3_2022_realistic_postEE_v6-v2/NANOAODSIM'
 }
 
-## ttDM samples ##
+## Mass points for top + DM searches
 
 mPhi = ['10','50','100','150','200','250','300','350','400','500','600','700','800','1000']
+
+## ttDM samples ##
 
 for phi in mPhi:
     Samples[f'TTDMsimpSpin0_s_mphi-{phi}'] = {
@@ -715,6 +717,34 @@ for phi in mPhi:
         'nanoAOD': f'/TTto2LDMsimpSpin0-ps_mchi-1-mphi-{phi}_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer22EENanoAODv12-130X_mcRun3_2022_realistic_postEE_v6-v2/NANOAODSIM'
     }
 
+## tDM tW-channel samples ##
+for phi in mPhi:
+    Samples[f'TWDMsimpSpin0_ps_mphi-{phi}'] = {
+        'nanoAOD': f'/TWDMsimpSpin0-s_mchi-1-mphi-{phi}_TuneCP5_13p6TeV_madgraph-pythia8/Run3Summer22EENanoAODv12-130X_mcRun3_2022_realistic_postEE_v6-v2/NANOAODSIM'
+    }
+
+    Samples[f'TWDMsimpSpin0_s_mphi-{phi}'] = {
+        'nanoAOD': f'/TWDMsimpSpin0-ps_mchi-1-mphi-{phi}_TuneCP5_13p6TeV_madgraph-pythia8/Run3Summer22EENanoAODv12-130X_mcRun3_2022_realistic_postEE_v6-v2/NANOAODSIM'
+    }
+
+for phi in mPhi:
+    Samples[f'TWto2LDMsimpSpin0_s_mphi-{phi}'] = {
+        'nanoAOD': f'/TWto2LDMsimpSpin0-s_mchi-1-mphi-{phi}_TuneCP5_13p6TeV_madgraph-pythia8/Run3Summer22EENanoAODv12-130X_mcRun3_2022_realistic_postEE_v6-v2/NANOAODSIM'
+    }
+
+    Samples[f'TWto2LDMsimpSpin0_ps_mphi-{phi}'] = {
+        'nanoAOD': f'/TWto2LDMsimpSpin0-ps_mchi-1-mphi-{phi}_TuneCP5_13p6TeV_madgraph-pythia8/Run3Summer22EENanoAODv12-130X_mcRun3_2022_realistic_postEE_v6-v2/NANOAODSIM'
+    }
+
+## tDM t-channel samples ##
+for phi in mPhi:
+    Samples[f'TBDMsimpSpin0_ps_mphi-{phi}'] = {
+        'nanoAOD': f'/TBDMsimpSpin0-s_mchi-1-mphi-{phi}_TuneCP5_13p6TeV_madgraph-pythia8/Run3Summer22EENanoAODv12-130X_mcRun3_2022_realistic_postEE_v6-v2/NANOAODSIM'
+    }
+
+    Samples[f'TBDMsimpSpin0_s_mphi-{phi}'] = {
+        'nanoAOD': f'/TBDMsimpSpin0-ps_mchi-1-mphi-{phi}_TuneCP5_13p6TeV_madgraph-pythia8/Run3Summer22EENanoAODv12-130X_mcRun3_2022_realistic_postEE_v6-v2/NANOAODSIM'
+    }
 
 #### Analysis recipes ####
 Samples['TTTo2L2Nu_10k_nano'] = {

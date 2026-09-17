@@ -14,7 +14,7 @@ extraText = "Preliminary"
 extraTextFont = 52
 
 # lumiTextSize     = 0.6
-lumiTextSize = 0.9
+lumiTextSize = 0.8
 lumiTextOffset = 0.0
 
 # cmsTextSize      = 0.75

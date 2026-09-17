@@ -542,11 +542,11 @@ mPhi = ['10','50','100','150','200','250','300','350','400','500','600','700','8
 
 for phi in mPhi:
     Samples[f'TTDMsimpSpin0_s_mphi-{phi}'] = {
-        'nanoAOD': f'/TTDMsimpSpin0-s_mchi-1-mphi-{phi}_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23BPixNanoAODv12-130X_mcRun3_2023_realistic_postBPix_v6-v2/NANOAODSIM'
+        'nanoAOD': f'/TTDMsimpSpin0-s_mchi-1-mphi-{phi}_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23BPixNanoAODv12-130X_mcRun3_2023_realistic_postBPix_v6-v4/NANOAODSIM'
     }
 
     Samples[f'TTDMsimpSpin0_ps_mphi-{phi}'] = {
-        'nanoAOD': f'/TTDMsimpSpin0-ps_mchi-1-mphi-{phi}_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23BPixNanoAODv12-130X_mcRun3_2023_realistic_postBPix_v6-v2/NANOAODSIM'
+        'nanoAOD': f'/TTDMsimpSpin0-ps_mchi-1-mphi-{phi}_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23BPixNanoAODv12-130X_mcRun3_2023_realistic_postBPix_v6-v4/NANOAODSIM'
     }
 
 for phi in mPhi:

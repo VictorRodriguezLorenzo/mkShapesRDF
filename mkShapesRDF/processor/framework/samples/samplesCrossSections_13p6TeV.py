@@ -444,6 +444,38 @@ xs_db['TTto2LDMsimpSpin0_s_mphi-700_ext1'] = ["xsec=0.0002264", "kfact=1.000", "
 xs_db['TTto2LDMsimpSpin0_s_mphi-800_ext1'] = ["xsec=0.0001414", "kfact=1.000", "ref=G"]
 xs_db['TTto2LDMsimpSpin0_s_mphi-1000_ext1'] = ["xsec=0.00006", "kfact=1.000", "ref=G"]
 
+# tDM tW-channel inclusive pseudoscalar
+xs_db['TWDMsimpSpin0_ps_mphi-10'] = ["xsec=0.0744", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_ps_mphi-50'] = ["xsec=0.05643", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_ps_mphi-100'] = ["xsec=0.04119", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_ps_mphi-150'] = ["xsec=0.03047", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_ps_mphi-200'] = ["xsec=0.02309", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_ps_mphi-250'] = ["xsec=0.01758", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_ps_mphi-300'] = ["xsec=0.01358", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_ps_mphi-350'] = ["xsec=0.008529", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_ps_mphi-400'] = ["xsec=0.004708", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_ps_mphi-500'] = ["xsec=0.002483", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_ps_mphi-600'] = ["xsec=0.001501", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_ps_mphi-700'] = ["xsec=0.0009555", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_ps_mphi-800'] = ["xsec=0.000626", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_ps_mphi-1000'] = ["xsec=0.0002904", "kfact=1.000", "ref=G"]
+
+# tDM tW-channel inclusive scalar
+xs_db['TWDMsimpSpin0_s_mphi-10'] = ["xsec=0.7919", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_s_mphi-50'] = ["xsec=0.1596", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_s_mphi-100'] = ["xsec=0.06339", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_s_mphi-150'] = ["xsec=0.038", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_s_mphi-200'] = ["xsec=0.02586", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_s_mphi-250'] = ["xsec=0.01905", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_s_mphi-300'] = ["xsec=0.01437", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_s_mphi-350'] = ["xsec=0.01103", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_s_mphi-400'] = ["xsec=0.007239", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_s_mphi-500'] = ["xsec=0.003412", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_s_mphi-600'] = ["xsec=0.00189", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_s_mphi-700'] = ["xsec=0.001133", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_s_mphi-800'] = ["xsec=0.0007245", "kfact=1.000", "ref=G"]
+xs_db['TWDMsimpSpin0_s_mphi-1000'] = ["xsec=0.0003162", "kfact=1.000", "ref=G"]
+
 # tDM tW-channel dilepton pseudoscalar
 xs_db['TWto2LDMsimpSpin0_ps_mphi-10'] = ["xsec=0.008351", "kfact=1.000", "ref=G"]
 xs_db['TWto2LDMsimpSpin0_ps_mphi-50'] = ["xsec=0.006291", "kfact=1.000", "ref=G"]
@@ -475,6 +507,38 @@ xs_db['TWto2LDMsimpSpin0_s_mphi-600'] = ["xsec=0.0002099", "kfact=1.000", "ref=G
 xs_db['TWto2LDMsimpSpin0_s_mphi-700'] = ["xsec=0.0001262", "kfact=1.000", "ref=G"]
 xs_db['TWto2LDMsimpSpin0_s_mphi-800'] = ["xsec=8.002e-05", "kfact=1.000", "ref=G"]
 xs_db['TWto2LDMsimpSpin0_s_mphi-1000'] = ["xsec=3.541e-05", "kfact=1.000", "ref=G"]
+
+#tDM t-channel inclusive pseudoscalar
+xs_db['TBDMsimpSpin0_ps_mphi-10'] = ["xsec=0.1835", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_ps_mphi-50'] = ["xsec=0.1328", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_ps_mphi-100'] = ["xsec=0.08664", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_ps_mphi-150'] = ["xsec=0.05863", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_ps_mphi-200'] = ["xsec=0.04009", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_ps_mphi-250'] = ["xsec=0.02838", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_ps_mphi-300'] = ["xsec=0.02029", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_ps_mphi-350'] = ["xsec=0.01176", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_ps_mphi-400'] = ["xsec=0.006235", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_ps_mphi-500'] = ["xsec=0.003023", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_ps_mphi-600'] = ["xsec=0.001696", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_ps_mphi-700'] = ["xsec=0.00103", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_ps_mphi-800'] = ["xsec=0.0006508", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_ps_mphi-1000'] = ["xsec=0.0002827", "kfact=1.000", "ref=G"]
+
+# tDM tW-channel inclusive scalar
+xs_db['TBDMsimpSpin0_s_mphi-10'] = ["xsec=3.106", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_s_mphi-50'] = ["xsec=0.7857", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_s_mphi-100'] = ["xsec=0.3028", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_s_mphi-150'] = ["xsec=0.152", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_s_mphi-200'] = ["xsec=0.08625", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_s_mphi-250'] = ["xsec=0.05301", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_s_mphi-300'] = ["xsec=0.03454", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_s_mphi-350'] = ["xsec=0.02326", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_s_mphi-400'] = ["xsec=0.01388", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_s_mphi-500'] = ["xsec=0.005561", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_s_mphi-600'] = ["xsec=0.002736", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_s_mphi-700'] = ["xsec=0.001496", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_s_mphi-800'] = ["xsec=0.0008878", "kfact=1.000", "ref=G"]
+xs_db['TBDMsimpSpin0_s_mphi-1000'] = ["xsec=0.0003546", "kfact=1.000", "ref=G"]
 
 # THIS IS OLD, AND COMES FROM RUN 2 UL!!
 #

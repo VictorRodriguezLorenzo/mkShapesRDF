@@ -16,15 +16,12 @@ class EventStorageReduction(Module):
                 temporary_columns.append(name)
             return dataframe
 
-        df = define_if_missing(df, 'numberCleanJets', 'Sum(CleanJet_pt > 30.)')
-
         mc_postselection = (
             '('
-            '  (Lepton_pt[0] > 35 && abs(Lepton_pdgId[0]) == 11 && abs(Lepton_eta[0]) < 2.5)'
+            '  (Lepton_pt[0] > 30 && abs(Lepton_pdgId[0]) == 11 && abs(Lepton_eta[0]) < 2.5)'
             '  || '
-            '  (Lepton_pt[0] > 30 && abs(Lepton_pdgId[0]) == 13 && abs(Lepton_eta[0]) < 2.4)'
+            '  (Lepton_pt[0] > 25 && abs(Lepton_pdgId[0]) == 13 && abs(Lepton_eta[0]) < 2.4)'
             ')'
-            ' && numberCleanJets >= 2'
             ' && PuppiMET_pt >= 150'
         )
 

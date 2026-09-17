@@ -318,15 +318,15 @@ Samples['WtoLNu-4Jets_MLNu-0to120_HT-400to800'] = {
 }
 
 Samples['WtoLNu-4Jets_MLNu-0to120_HT-800to1500'] = {
-    'nanoAOD':'/WtoLNu-4Jets_MLNu-0to120_HT-800to1500_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v5/NANOAODSIM'
+    'nanoAOD':'/WtoLNu-4Jets_MLNu-0to120_HT-800to1500_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v15-v5/NANOAODSIM'
 }
 
 Samples['WtoLNu-4Jets_MLNu-0to120_HT-1500to2500'] = {
-    'nanoAOD':'/WtoLNu-4Jets_MLNu-0to120_HT-1500to2500_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v4/NANOAODSIM'
+    'nanoAOD':'/WtoLNu-4Jets_MLNu-0to120_HT-1500to2500_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v15-v4/NANOAODSIM'
 }
 
 Samples['WtoLNu-4Jets_MLNu-0to120_HT-2500'] = {
-    'nanoAOD':'/WtoLNu-4Jets_MLNu-0to120_HT-2500_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v3/NANOAODSIM'
+    'nanoAOD':'/WtoLNu-4Jets_MLNu-0to120_HT-2500_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v15-v3/NANOAODSIM'
 }
 
 
@@ -361,7 +361,7 @@ Samples['DYJetsToLL_M-50-LO'] = {
 }
 
 Samples['DYto2L-2Jets_MLL-10to50'] = {
-    'nanoAOD' :'/DYto2L-2Jets_MLL-10to50_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14_ext1-v3/NANOAODSIM'
+    'nanoAOD' :'/DYto2L-2Jets_MLL-10to50_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14_ext1-v4/NANOAODSIM'
 }
 
 Samples['DYto2L-2Jets_MLL-50'] = {
@@ -541,11 +541,11 @@ mPhi = ['10','50','100','150','200','250','300','350','400','500','600','700','8
 
 for phi in mPhi:
     Samples[f'TTDMsimpSpin0_s_mphi-{phi}'] = {
-        'nanoAOD': f'/TTDMsimpSpin0-s_mchi-1-mphi-{phi}_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v15-v2/NANOAODSIM'
+        'nanoAOD': f'/TTDMsimpSpin0-s_mchi-1-mphi-{phi}_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v15-v4/NANOAODSIM'
     }
 
     Samples[f'TTDMsimpSpin0_ps_mphi-{phi}'] = {
-        'nanoAOD': f'/TTDMsimpSpin0-ps_mchi-1-mphi-{phi}_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v15-v2/NANOAODSIM'
+        'nanoAOD': f'/TTDMsimpSpin0-ps_mchi-1-mphi-{phi}_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v15-v4/NANOAODSIM'
     }
 
 for phi in mPhi:

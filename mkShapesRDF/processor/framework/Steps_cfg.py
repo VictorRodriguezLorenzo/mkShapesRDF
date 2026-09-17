@@ -110,6 +110,7 @@ Steps = {
             "lepFiller_tthMVA",
             "lepSel",
             "jetIDMaker",
+            "eventStorageReduction",
             "JES_modules_reduced_MC",
             "jetSelMask",
             "PromptParticlesGenVars",
@@ -126,8 +127,7 @@ Steps = {
             "formulasMC",
             "leptonScale_mc",
             "l2Kin",
-            "eventStorageReduction",
-            "finalSnapshot_JES",
+            "finalSnapshot_JES_tDM_v12",
         ]
     },
     # 2022EE
@@ -193,6 +193,7 @@ Steps = {
             "lepFiller_tthMVA",
             "lepSel",
             "jetIDMaker",
+            "eventStorageReduction",
             "JES_modules_reduced_MC",
             "jetSelMask",
             "PromptParticlesGenVars",
@@ -209,8 +210,7 @@ Steps = {
             "formulasMC",
             "leptonScale_mc",
             "l2Kin",
-            "eventStorageReduction",
-            "finalSnapshot_JES",
+            "finalSnapshot_JES_tDM_v12",
         ]
     },
     # 2023
@@ -276,6 +276,7 @@ Steps = {
             "lepFiller_tthMVA",
             "lepSel",
             "jetIDMaker",
+            "eventStorageReduction",
             "JES_modules_reduced_MC",
             "jetSelMask",
             "PromptParticlesGenVars",
@@ -293,63 +294,10 @@ Steps = {
             "JES_modules_reduced_MC",
             "leptonScale_mc",
             "l2Kin",
-            "eventStorageReduction",
-            "finalSnapshot_JES",
+            "finalSnapshot_JES_tDM_v12",
         ]
     },
     # 2023BPix
-    "DATAl2loose2023BPixv12__l2loose": {
-        "isChain" : True,
-        "do4MC" : False,
-        "do4Data" : True,
-        "selection" : '"((nElectron+nMuon)>1)"',
-        "subTargets" : [
-            "lumiMask",
-            "leptonMaker",
-            "lepFiller_tthMVA",
-            "lepSel",
-            "jetIDMaker",
-            "JES_modules_reduced_DATA",
-            "jetSelMask",
-            "leptonScale_data",
-            "l2Kin",
-            "l3Kin",
-            "l4Kin",
-            "trigData",
-            "formulasDATA",
-            "finalSnapshot_DATA",
-        ],
-    },
-    "MCl2loose2023BPixv12__MCCorr2023BPixv12JetScaling__l2tight": {
-        "isChain" : True,
-        "do4MC" : True,
-        "do4Data" : False,
-        "selection" : '"((nElectron+nMuon)>1)"',
-        "subTargets" : [
-            "leptonMaker",
-            "lepFiller_tthMVA",
-            "lepSel",
-            "jetIDMaker",
-            "JES_modules_reduced_MC",
-            "jetSelMask",
-            "PromptParticlesGenVars",
-            "GenVar",
-            "GenLeptonMatch",
-            "HiggsGenVars",
-            "TopGenVars",
-            "WGammaStar",
-            "DressedLeptons",
-            "baseW",
-            "trigMC",
-            "leptonSF",
-            "puW",
-            "formulasMC",
-            "l2tight",
-            "leptonScale_mc",
-            "l2Kin",
-            "finalSnapshot_JES_ttDM",
-        ]
-    },
     "MCl1loose2023BPixv12__MCCorr2023BPixv12JetScaling": {
         "isChain" : True,
         "do4MC" : True,
@@ -360,6 +308,7 @@ Steps = {
             "lepFiller_tthMVA",
             "lepSel",
             "jetIDMaker",
+            "eventStorageReduction",
             "JES_modules_reduced_MC",
             "jetSelMask",
             "PromptParticlesGenVars",
@@ -374,12 +323,13 @@ Steps = {
             "leptonSF",
             "puW",
             "formulasMC",
+            "JES_modules_reduced_MC",
             "leptonScale_mc",
             "l2Kin",
-            "eventStorageReduction",
-            "finalSnapshot_JES",
+            "finalSnapshot_JES_tDM_v12",
         ]
     },
+
     # 2024
     "DATAl2loose2024v15__l2loose": {
         "isChain" : True,
@@ -441,6 +391,7 @@ Steps = {
             "lepFiller_tthMVA",
             "lepSel",
             "jetIDMaker",
+            "eventStorageReduction",
             "JES_modules_reducedv15_MC",
             "jetSelMask",
             "PromptParticlesGenVars",
@@ -457,8 +408,7 @@ Steps = {
             "formulasMC",
             "leptonScale_mc",
             "l2Kin",
-            "eventStorageReduction",
-            "finalSnapshot_JES",
+            "finalSnapshot_JES_tDM_v15",
         ]
     },
     # 2025
@@ -667,6 +617,7 @@ Steps = {
             "lepFiller_tthMVA",
             "lepSel",
             "jetIDMaker",
+            "eventStorageReduction",
             "JES_modules_reduced_DATA",
             "jetSelMask",
             "l2Kin",
@@ -674,8 +625,7 @@ Steps = {
             "l4Kin",
             "trigData",
             "formulasDATA",
-            "eventStorageReduction",
-            "finalSnapshot_DATA",
+            "finalSnapshot_DATA_tDM_v12",
         ],
     },
 	
@@ -846,6 +796,7 @@ Steps = {
             "lepFiller_tthMVA",
             "lepSel",
             "jetIDMaker",
+            "eventStorageReduction",
             "JES_modules_reduced_DATA",
             "jetSelMask",
             "l2Kin",
@@ -853,8 +804,7 @@ Steps = {
             "l4Kin",
             "trigData",
             "formulasDATA",
-            "eventStorageReduction",
-            "finalSnapshot_DATA",
+            "finalSnapshot_DATA_tDM_v12",
         ],
     },
 	
@@ -981,6 +931,7 @@ Steps = {
             "lepFiller_tthMVA",
             "lepSel",
             "jetIDMaker",
+            "eventStorageReduction",
             "JES_modules_reduced_DATA",
             "jetSelMask",
             "l2Kin",
@@ -988,8 +939,7 @@ Steps = {
             "l4Kin",
             "trigData",
             "formulasDATA",
-            "eventStorageReduction",
-            "finalSnapshot_DATA",
+            "finalSnapshot_DATA_tDM_v12",
         ],
     },
 	
@@ -1201,6 +1151,7 @@ Steps = {
             "lepFiller_tthMVA",
             "lepSel",
             "jetIDMaker",
+            "eventStorageReduction",
             "JES_modules_reduced_DATA",
             "jetSelMask",
             "l2Kin",
@@ -1208,8 +1159,7 @@ Steps = {
             "l4Kin",
             "trigData",
             "formulasDATA",
-            "eventStorageReduction",
-            "finalSnapshot_DATA",
+            "finalSnapshot_DATA_tDM_v12",
         ],
     },
 	
@@ -1417,6 +1367,7 @@ Steps = {
             "lepFiller_tthMVA",
             "lepSel",
             "jetIDMaker",
+            "eventStorageReduction",
             "JES_modules_reducedv15_DATA",
             "jetSelMask",
             "l2Kin",
@@ -1424,8 +1375,7 @@ Steps = {
             "l4Kin",
             "trigData",
             "formulasDATA",
-            "eventStorageReduction",
-            "finalSnapshot_DATA",
+            "finalSnapshot_DATA_tDM_v15",
         ],
     },
 
@@ -2522,7 +2472,33 @@ Steps = {
                 includeVariations=False, splitVariations=False, storeNominals=True )",
         "module": "snapshot()",
     },
-    
+ 
+    "finalSnapshot_DATA_tDM_v12": {
+        "isChain": False,
+        "do4MC": False,
+        "do4Data": True,
+        "import": "mkShapesRDF.processor.modules.Snapshot",
+        "declare": "snapshot = lambda : Snapshot( \
+                tmpOutputFilename=RPLME_OUTPUTFILENAMETMP+'/RPLME_OUTPUTFILENAME', \
+                columns=['run','luminosityBlock','event','nLepton','Lepton_pt','Lepton_eta','Lepton_phi','Lepton_pdgId','Lepton_promptgenmatched','Lepton_isTightMuon_cut_TightID_pfIsoLoose_HWW_tthmva_67','Lepton_isTightElectron_cutBased_MediumID_tthMVA_Run3','Lepton_RecoSF*', 'nJet','Jet_pt','Jet_eta','Jet_phi','Jet_mass','Jet_btag*','Jet_hadronFlavour','Jet_jetId','Jet_area','nCleanJet','CleanJet_pt','CleanJet_eta','CleanJet_phi','CleanJet_mass','CleanJet_jetIdx','Jet_btag*','Jet_hadronFlavour','Jet_jetId','Jet_area','FatJet_pt','FatJet_eta','FatJet_phi','FatJet_mass','FatJet_area','FatJet_jetId','FatJet_btagDeepB','FatJet_particleNetWithMass_QCD','FatJet_particleNetWithMass_TvsQCD','FatJet_particleNetWithMass_WvsQCD','pt1','pt2','mll','ptll','drll','detall','dphill','yll','PuppiMET_pt','PuppiMET_phi','dphilmet','dphilmet1','dphilmet2','dphillmet','mtw1','mtw2','mth','mTi','mR','mTe','recoil','upara','uperp','pTWW','mcoll','mcollWW','choiMass','njet','ht','vht_pt','dphijet1met','dphijet2met','dphijjmet','projtkmet','projpfmet','SFweight1l','Lepton_tightElectron_cutBased_MediumID_tthMVA_Run3*','Lepton_tightMuon_cut_TightID_pfIsoLoose_HWW_tthmva_67*','XSWeight','METFilter_*','TriggerEffWeight_1l','Trigger_sngMu','Trigger_sngEl','TriggerSFWeight_1l*','puWeight*','topGenPt','antitopGenPt','gen_ptll','Gen_ZGstar_mass','PSWeight','LHEPdfWeight','LHEScaleWeight','nLHEScaleWeight'], \
+                eosPath='RPLME_EOSPATH', outputFilename='RPLME_OUTPUTFILENAME', \
+                includeVariations=False, splitVariations=False, storeNominals=True )",
+        "module": "snapshot()",
+    },
+
+    "finalSnapshot_DATA_tDM_v15": {
+        "isChain": False,
+        "do4MC": False,
+        "do4Data": True,
+        "import": "mkShapesRDF.processor.modules.Snapshot",
+        "declare": "snapshot = lambda : Snapshot( \
+                tmpOutputFilename=RPLME_OUTPUTFILENAMETMP+'/RPLME_OUTPUTFILENAME', \
+                columns=['run','luminosityBlock','event','nLepton','Lepton_pt','Lepton_eta','Lepton_phi','Lepton_pdgId','Lepton_promptgenmatched','Lepton_isTightMuon_cut_TightID_pfIsoLoose_HWW_tthmva_67','Lepton_isTightElectron_cutBased_MediumID_tthMVA_Run3','Lepton_RecoSF*', 'nJet','Jet_pt','Jet_eta','Jet_phi','Jet_mass','Jet_btag*','Jet_hadronFlavour','Jet_jetId','Jet_area', 'nCleanJet','CleanJet_pt','CleanJet_eta','CleanJet_phi','CleanJet_mass','CleanJet_jetIdx','Jet_btag*','Jet_hadronFlavour','Jet_jetId','Jet_area','FatJet_pt','FatJet_eta','FatJet_phi','FatJet_mass','FatJet_area','FatJet_jetId','FatJet_globalParT3_Xbb','FatJet_globalParT3_QCD','FatJet_globalParT3_withMassTopvsQCD','FatJet_globalParT3_withMassWvsQCD','pt1','pt2','mll','ptll','drll','detall','dphill','yll','PuppiMET_pt','PuppiMET_phi','dphilmet','dphilmet1','dphilmet2','dphillmet','mtw1','mtw2','mth','mTi','mR','mTe','recoil','upara','uperp','pTWW','mcoll','mcollWW','choiMass','njet','ht','vht_pt','dphijet1met','dphijet2met','dphijjmet','projtkmet','projpfmet','SFweight1l','Lepton_tightElectron_cutBased_MediumID_tthMVA_Run3*','Lepton_tightMuon_cut_TightID_pfIsoLoose_HWW_tthmva_67*','XSWeight','METFilter_*','TriggerEffWeight_1l','Trigger_sngMu','Trigger_sngEl','TriggerSFWeight_1l*','puWeight*','topGenPt','antitopGenPt','gen_ptll','Gen_ZGstar_mass','PSWeight','LHEPdfWeight','LHEScaleWeight','nLHEScaleWeight'], \
+                eosPath='RPLME_EOSPATH', outputFilename='RPLME_OUTPUTFILENAME', \
+                includeVariations=False, splitVariations=False, storeNominals=True )",
+        "module": "snapshot()",
+    },
+
     "finalSnapshot_JES_ttDM": {
             "isChain" : False,
             "do4MC"   : True,
@@ -2530,7 +2506,33 @@ Steps = {
             "import"  : "mkShapesRDF.processor.modules.Snapshot",
             "declare" : "snapshot = lambda : Snapshot( \
                     tmpOutputFilename=RPLME_OUTPUTFILENAMETMP+'/RPLME_OUTPUTFILENAME', \
-                    columns=['run','luminosityBlock','event','nLepton','Lepton_pt','Lepton_eta','Lepton_phi','Lepton_pdgId','Lepton_promptgenmatched','Lepton_isTightMuon_*','Lepton_isTightElectron_*','nCleanJet','CleanJet_pt','CleanJet_eta','CleanJet_phi','CleanJet_mass','CleanJet_jetIdx','Jet_btag*','Jet_hadronFlavour','pt1','pt2','mll','ptll','drll','detall','dphill','yll','PuppiMET_pt','PuppiMET_phi','dphilmet','dphilmet1','dphilmet2','dphillmet','mtw1','mtw2','mth','mTi','mR','mTe','recoil','upara','uperp','pTWW','mcoll','mcollWW','choiMass','njet','ht','vht_pt','dphijet1met','dphijet2met','dphijjmet','projtkmet','projpfmet','SFweight2l','LepCut2l__*','LepSF2l__*','XSWeight','METFilter_*','Trigger_*','TriggerSFWeight_2l*','puWeight*','topGenPt','antitopGenPt','gen_ptll','Gen_ZGstar_mass','PSWeight','LHEPdfWeight','LHEScaleWeight','nLHEScaleWeight'], \
+                    columns=['run','luminosityBlock','event','nLepton','Lepton_pt','Lepton_eta','Lepton_phi','Lepton_pdgId','Lepton_promptgenmatched', 'Lepton_isTightMuon_cut_TightID_pfIsoLoose_HWW_tthmva_67','Lepton_isTightElectron_cutBased_MediumID_tthMVA_Run3', 'nJet','Jet_pt','Jet_eta','Jet_phi','Jet_mass','Jet_btag*','Jet_hadronFlavour','Jet_jetId','Jet_area','nCleanJet','CleanJet_pt','CleanJet_eta','CleanJet_phi','CleanJet_mass','CleanJet_jetIdx','Jet_btag*','Jet_hadronFlavour','pt1','pt2','mll','ptll','drll','detall','dphill','yll','PuppiMET_pt','PuppiMET_phi','dphilmet','dphilmet1','dphilmet2','dphillmet','mtw1','mtw2','mth','mTi','mR','mTe','recoil','upara','uperp','pTWW','mcoll','mcollWW','choiMass','njet','ht','vht_pt','dphijet1met','dphijet2met','dphijjmet','projtkmet','projpfmet','SFweight2l','LepCut2l__*','LepSF2l__*','XSWeight','METFilter_*','Trigger_*','TriggerEffWeight_1l','TriggerSFWeight_2l*','puWeight*','topGenPt','antitopGenPt','gen_ptll','Gen_ZGstar_mass','PSWeight','LHEPdfWeight','LHEScaleWeight','nLHEScaleWeight'], \
+        eosPath='RPLME_EOSPATH', outputFilename='RPLME_OUTPUTFILENAME', \
+        includeVariations=True, splitVariations=True, storeNominals=True)",
+        "module": "snapshot()",
+    },
+
+    "finalSnapshot_JES_tDM_v12": {
+            "isChain" : False,
+            "do4MC"   : True,
+            "do4Data" : False,
+            "import"  : "mkShapesRDF.processor.modules.Snapshot",
+            "declare" : "snapshot = lambda : Snapshot( \
+                    tmpOutputFilename=RPLME_OUTPUTFILENAMETMP+'/RPLME_OUTPUTFILENAME', \
+                    columns=['run','luminosityBlock','event','nLepton','Lepton_pt','Lepton_eta','Lepton_phi','Lepton_pdgId','Lepton_promptgenmatched','Lepton_isTightMuon_cut_TightID_pfIsoLoose_HWW_tthmva_67','Lepton_isTightElectron_cutBased_MediumID_tthMVA_Run3','Lepton_RecoSF*','nJet','Jet_pt','Jet_eta','Jet_phi','Jet_mass','nCleanJet','CleanJet_pt','CleanJet_eta','CleanJet_phi','CleanJet_mass','CleanJet_jetIdx','Jet_btag*','Jet_hadronFlavour','Jet_area','Jet_jetId','FatJet_pt','FatJet_eta','FatJet_phi','FatJet_mass','FatJet_area','FatJet_jetId','FatJet_btagDeepB','FatJet_particleNetWithMass_QCD','FatJet_particleNetWithMass_TvsQCD','FatJet_particleNetWithMass_WvsQCD','pt1','pt2','mll','ptll','drll','detall','dphill','yll','PuppiMET_pt','PuppiMET_phi','dphilmet','dphilmet1','dphilmet2','dphillmet','mtw1','mtw2','mth','mTi','mR','mTe','recoil','upara','uperp','pTWW','mcoll','mcollWW','choiMass','njet','ht','vht_pt','dphijet1met','dphijet2met','dphijjmet','projtkmet','projpfmet','SFweight1l','Lepton_tightElectron_cutBased_MediumID_tthMVA_Run3*','Lepton_tightMuon_cut_TightID_pfIsoLoose_HWW_tthmva_67*','XSWeight','METFilter_*','TriggerEffWeight_1l','Trigger_sngMu','Trigger_sngEl','TriggerSFWeight_1l*','puWeight*','topGenPt','antitopGenPt','gen_ptll','Gen_ZGstar_mass','PSWeight','LHEPdfWeight','LHEScaleWeight','nLHEScaleWeight'], \
+        eosPath='RPLME_EOSPATH', outputFilename='RPLME_OUTPUTFILENAME', \
+        includeVariations=True, splitVariations=True, storeNominals=True)",
+        "module": "snapshot()",
+    },
+
+    "finalSnapshot_JES_tDM_v15": {
+            "isChain" : False,
+            "do4MC"   : True,
+            "do4Data" : False,
+            "import"  : "mkShapesRDF.processor.modules.Snapshot",
+            "declare" : "snapshot = lambda : Snapshot( \
+                    tmpOutputFilename=RPLME_OUTPUTFILENAMETMP+'/RPLME_OUTPUTFILENAME', \
+                    columns=['run','luminosityBlock','event','nLepton','Lepton_pt','Lepton_eta','Lepton_phi','Lepton_pdgId','Lepton_promptgenmatched','Lepton_isTightMuon_cut_TightID_pfIsoLoose_HWW_tthmva_67','Lepton_isTightElectron_cutBased_MediumID_tthMVA_Run3','Lepton_RecoSF*', 'nJet','Jet_pt','Jet_eta','Jet_phi','Jet_mass','Jet_btag*','Jet_hadronFlavour','Jet_jetId','Jet_area','nCleanJet','CleanJet_pt','CleanJet_eta','CleanJet_phi','CleanJet_mass','CleanJet_jetIdx','Jet_btag*','Jet_hadronFlavour','Jet_area','Jet_jetId','FatJet_pt','FatJet_eta','FatJet_phi','FatJet_mass','FatJet_area','FatJet_jetId','FatJet_globalParT3_Xbb','FatJet_globalParT3_QCD','FatJet_globalParT3_withMassTopvsQCD','FatJet_globalParT3_withMassWvsQCD','pt1','pt2','mll','ptll','drll','detall','dphill','yll','PuppiMET_pt','PuppiMET_phi','dphilmet','dphilmet1','dphilmet2','dphillmet','mtw1','mtw2','mth','mTi','mR','mTe','recoil','upara','uperp','pTWW','mcoll','mcollWW','choiMass','njet','ht','vht_pt','dphijet1met','dphijet2met','dphijjmet','projtkmet','projpfmet','SFweight1l','Lepton_tightElectron_cutBased_MediumID_tthMVA_Run3*','Lepton_tightMuon_cut_TightID_pfIsoLoose_HWW_tthmva_67*','XSWeight','METFilter_*','TriggerEffWeight_1l','Trigger_sngMu','Trigger_sngEl','TriggerSFWeight_1l*','puWeight*','topGenPt','antitopGenPt','gen_ptll','Gen_ZGstar_mass','PSWeight','LHEPdfWeight','LHEScaleWeight','nLHEScaleWeight'], \
         eosPath='RPLME_EOSPATH', outputFilename='RPLME_OUTPUTFILENAME', \
         includeVariations=True, splitVariations=True, storeNominals=True)",
         "module": "snapshot()",

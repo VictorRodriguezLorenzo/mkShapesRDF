@@ -1579,10 +1579,10 @@ class PlotFactory:
                             histos[sampleName].Draw("p same")
 
                 # ---- the Legend
-                tlegend = ROOT.TLegend(0.20, 0.65, 0.80, 0.88)
+                tlegend = ROOT.TLegend(0.20, 0.65, 0.92, 0.88)
                 tlegend.SetFillColor(0)
                 tlegend.SetTextFont(42)
-                tlegend.SetTextSize(0.035)
+                tlegend.SetTextSize(0.03)
                 tlegend.SetLineColor(0)
                 tlegend.SetShadowColor(0)
                 reversedSampleNames = list(self._samples)

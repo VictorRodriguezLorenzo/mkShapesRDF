@@ -952,7 +952,14 @@ class DatacardFactory:
                             )
 
                         card.write(sampleName.ljust(25))
-                        card.write(("%-.4f" % float(initialValue)).ljust(columndef))
+                        
+                        rate_param_value = f"{float(initialValue):.4f}"
+                        
+                        if "range" in nuisance:
+                            rate_param_min, rate_param_max = nuisance["range"]
+                            rate_param_value += f" [{rate_param_min},{rate_param_max}]"
+                        
+                        card.write(rate_param_value.ljust(columndef))
                         card.write("\n")
 
                     # now add other nuisances
@@ -1097,12 +1104,11 @@ def defaultParser():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-
     parser.add_argument(
         "--outputDirDatacard",
         dest="outputDirDatacard",
         help="output directory",
-        default="./datacards",
+        default=None,
     )
     parser.add_argument(
         "--skipMissingNuisance",
@@ -1159,6 +1165,8 @@ def main():
 
     configsFolder = "configs"
     ConfigLib.loadLatestPickle(os.path.abspath(configsFolder), globals())
+    if opt.outputDirDatacard is None:
+        opt.outputDirDatacard = outputDirDatacard
     print(dir())
     print(globals().keys())
 

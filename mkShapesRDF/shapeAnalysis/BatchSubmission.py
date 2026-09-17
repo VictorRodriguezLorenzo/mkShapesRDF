@@ -2,9 +2,75 @@ import subprocess
 from pathlib import Path
 import os
 import shutil
+from copy import deepcopy
 
 
 class BatchSubmission:
+    DEFAULT_RUNNER_VARIABLES = (
+        "samples",
+        "aliases",
+        "variables",
+        "cuts",
+        "nuisances",
+        "lumi",
+    )
+
+    @staticmethod
+    def _select_sample_config(config, sample_name):
+        """Return only configuration entries that apply to ``sample_name``.
+
+        Aliases and nuisances are the two batch configuration collections whose
+        entries may be restricted with a ``samples`` field.  Keeping every
+        entry (and every key in a nuisance's sample map) made each generated
+        ``script.py`` carry configuration for the complete production.
+        """
+        selected = {}
+        for name, value in config.items():
+            if not isinstance(value, dict) or "samples" not in value:
+                selected[name] = deepcopy(value)
+                continue
+
+            sample_spec = value["samples"]
+            if sample_name not in sample_spec:
+                continue
+
+            selected[name] = deepcopy(value)
+            if isinstance(sample_spec, dict):
+                selected[name]["samples"] = {
+                    sample_name: deepcopy(sample_spec[sample_name])
+                }
+            elif isinstance(sample_spec, (list, tuple, set)):
+                selected[name]["samples"] = [sample_name]
+
+        return selected
+
+    def _batch_value(self, variable, sample_name):
+        """Get a batch variable, reducing sample-aware collections per job."""
+        value = self.d[variable]
+        if variable in ("aliases", "nuisances"):
+            value = self._select_sample_config(value, sample_name)
+        if variable == "nuisances":
+            for nuisance in value.values():
+                for folder_key in ("folderUp", "folderDown"):
+                    folders = nuisance.get(folder_key)
+                    if isinstance(folders, dict):
+                        nuisance[folder_key] = folders[sample_name]
+        return value
+
+    def _job_variables(self):
+        """Return only the globals consumed by the selected runner.
+
+        The bundled runner has a well-defined six-variable interface.  Older
+        configuration templates made ``batchVars`` a slice of ``varsToKeep``,
+        which also copied plotting, datacard, and submission-only data into
+        every job.  A custom runner remains governed by ``batchVars`` because
+        its required globals cannot be inferred here.
+        """
+        default_runner = Path(__file__).with_name("runner.py").resolve()
+        if Path(self.runnerPath).resolve() == default_runner:
+            return self.DEFAULT_RUNNER_VARIABLES
+        return self.batchVars
+
     @staticmethod
     def resubmitJobs(batchFolder, tag, samples, dryRun, queue):
         """
@@ -86,21 +152,23 @@ class BatchSubmission:
 
         txtpy = "from collections import OrderedDict\n"
 
+        # ``sample`` is already the single chunk produced by splitSamples.
         _samples = [sample]
 
         txtpy += f"samples = {str(_samples)}\n"
 
-        for var in self.batchVars:
+        for var in self._job_variables():
             _var = var
             if not isinstance(var, str):
                 _var = var[0]
 
             if _var == "samples":
                 continue
-            if isinstance(self.d[_var], int) or isinstance(self.d[_var], float):
-                txtpy += f"{_var} = {self.d[_var]}\n"
+            value = self._batch_value(_var, sampleName)
+            if isinstance(value, int) or isinstance(value, float):
+                txtpy += f"{_var} = {value}\n"
             else:
-                txtpy += f"{_var} = {str(self.d[_var])}\n"
+                txtpy += f"{_var} = {str(value)}\n"
 
         with open(
             f"{self.batchFolder}/{self.tag}/{sampleName}_{str(i)}/script.py", "w"

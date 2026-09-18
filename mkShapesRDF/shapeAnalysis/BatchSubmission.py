@@ -131,22 +131,22 @@ class BatchSubmission:
 
         txtpy = "from collections import OrderedDict\n"
 
-        _samples = [sample]
-
-        txtpy += f"samples = {str(_samples)}\n"
-
-        for var in (() if self._uses_default_runner() else self.batchVars):
-            _var = var
-            if not isinstance(var, str):
-                _var = var[0]
-
-            if _var == "samples":
-                continue
-            value = self._batch_value(_var, sampleName)
-            if isinstance(value, int) or isinstance(value, float):
-                txtpy += f"{_var} = {value}\n"
-            else:
-                txtpy += f"{_var} = {str(value)}\n"
+        if self._uses_default_runner() and len(sample) > 5:
+            sample_config = {key: sample[5][key] for key in ("flatten_samples_map",) if key in sample[5]}
+            sample = sample[:5] + (sample_config,) + sample[6:]
+        
+        txtpy += f"# 0: sample name, 1: files for this job, 2: computed weight, 3: chunk index, 4: isData, 5: reduced original config, 6: subsample definitions (if specified)\n"
+        txtpy += f"samples = {[sample]}\n"
+        
+        if not self._uses_default_runner():
+            for var in self.batchVars:
+                var = var if isinstance(var, str) else var[0]
+        
+                if var == "samples":
+                    continue
+        
+                value = self._batch_value(var, sampleName)
+                txtpy += f"{var} = {value!r}\n"
 
         with open(
             f"{self.batchFolder}/{self.tag}/{sampleName}_{str(i)}/script.py", "w"

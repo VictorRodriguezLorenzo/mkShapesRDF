@@ -188,6 +188,7 @@ Steps = {
             "finalSnapshot_JES",
 	]
     },
+
     "MCl1loose2022EEv12__MCCorr2022EEv12JetScaling": {
         "isChain" : True,
         "do4MC" : True,
@@ -197,7 +198,12 @@ Steps = {
             "leptonMaker",
             "lepFiller_tthMVA",
             "lepSel",
-            "jetSelMask",
+            "jetIDMaker",
+            "JES_modules_reduced_MC",
+            "jetSelMaskFilter",
+            "fatJetIDMaker",
+            "JES_modules_reduced_FatJet_MC",
+            "fatJetSelMask",
             "PromptParticlesGenVars",
             "GenVar",
             "GenLeptonMatch",
@@ -210,13 +216,13 @@ Steps = {
             "leptonSF",
             "puW",
             "formulasMC",
-            "JES_modules_reduced_MC",
+            "l2tight",
             "leptonScale_mc",
             "l2Kin",
             "l3Kin",
             "l4Kin",
             "finalSnapshot_JES",
-        ]
+	]
     },
 
     # 2023
@@ -2096,7 +2102,34 @@ Steps = {
         "declare": 'jetSelMask = lambda : JetSelMask(2,15.0,4.7,False,"RPLME_CMSSW", doMask = True, eventMask = False)',
         "module": "jetSelMask()",
     },
+
+    "fatJetIDMaker": {
+        "isChain": False,
+        "do4MC": True,
+        "do4Data": True,
+        "import": "mkShapesRDF.processor.modules.FatJetIDMaker",
+        "declare": 'fatJetIDMaker = lambda : FatJetIDMaker("RPLME_CMSSW")',
+        "module": "fatJetIDMaker()",
+    },
     
+    "fatJetSelMask": {
+        "isChain": False,
+        "do4MC": True,
+        "do4Data": True,
+        "import": "mkShapesRDF.processor.modules.FatJetSelMask",
+        "declare": 'fatJetSelMask = lambda : FatJetSelMask(2,200.0,2.4,doMask=True)',
+        "module": "fatJetSelMask()",
+    },
+    
+    "fatJetSel": {
+        "isChain": False,
+        "do4MC": True,
+        "do4Data": True,
+        "import": "mkShapesRDF.processor.modules.FatJetSel",
+        "declare": 'fatJetSel = lambda : FatJetSel(2,200.0,2.4)',
+        "module": "fatJetSel()",
+    },
+
     "fakeSel": {
         "isChain": False,
         "do4MC": True,
@@ -2214,6 +2247,16 @@ Steps = {
         "declare" : 'jmeCalculator = lambda : JMECalculator(jet_object="AK4PFPuppi", jes_unc=["Regrouped_Absolute", "Regrouped_Absolute_YEAR", "Regrouped_FlavorQCD", "Regrouped_BBEC1", "Regrouped_EC2", "Regrouped_HF", "Regrouped_BBEC1_YEAR", "Regrouped_EC2_YEAR", "Regrouped_RelativeBal", "Regrouped_RelativeSample_YEAR", "Regrouped_HF_YEAR"], \
         year = "RPLME_CMSSW", do_Jets=True, do_MET=True, do_XYMET=True, met_collections = ["PuppiMET", "MET", "RawMET"],do_JER=True, store_nominal=True, store_variations=True, isMC=True, sampleName = "RPLME_SAMPLENAME")',
         "module"  : "jmeCalculator()",
+    },
+
+    "JES_modules_reduced_FatJet_MC": {
+        "isChain" : False,
+        "do4MC"   : True,
+        "do4Data" : False,
+        "import"  : "mkShapesRDF.processor.modules.FatJMECalculator",
+        "declare" : 'fatJMECalculator = lambda : FatJMECalculator(jet_object="AK8PFPuppi", jes_unc=["Regrouped_Absolute", "Regrouped_Absolute_YEAR", "Regrouped_FlavorQCD", "Regrouped_BBEC1", "Regrouped_EC2", "Regrouped_HF", "Regrouped_BBEC1_YEAR", "Regrouped_EC2_YEAR", "Regrouped_RelativeBal", "Regrouped_RelativeSample_YEAR", "Regrouped_HF_YEAR"], \
+        year="RPLME_CMSSW", do_JER=True, store_nominal=True, store_variations=True, isMC=True, sampleName="RPLME_SAMPLENAME")',
+        "module"  : "fatJMECalculator()",
     },
 
     "JES_modules_reducedv15_MC": {

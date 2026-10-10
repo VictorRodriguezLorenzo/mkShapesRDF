@@ -28,11 +28,11 @@ class JetSelMask(Module):
                     self.pathToJson = {}
                     self.globalTag = {}
                     for run in self.runPeriods:
-                        self.pathToJson[run] = JetMakerCfg[self.year][run]["vetomap"]
-                        self.globalTag[run] = JetMakerCfg[self.year][run]["vetokey"]
+                        self.pathToJson[run] = JetMakerCfg[self.year][run]['jet']["vetomap"]
+                        self.globalTag[run] = JetMakerCfg[self.year][run]['jet']["vetokey"]
                 else:
-                    self.pathToJson = JetMakerCfg[self.year]["vetomap"]
-                    self.globalTag = JetMakerCfg[self.year]["vetokey"]
+                    self.pathToJson = JetMakerCfg[self.year]['jet']["vetomap"]
+                    self.globalTag = JetMakerCfg[self.year]['jet']["vetokey"]
         
     def runModule(self, df, values):
 
